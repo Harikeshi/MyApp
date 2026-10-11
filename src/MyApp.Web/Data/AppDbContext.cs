@@ -9,4 +9,17 @@ namespace MyApp.Web.Data;
 public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbContext<IdentityUser>(options)
 {
     public DbSet<TodoItem> Todos => Set<TodoItem>();
+
+    protected override void OnModelCreating(ModelBuilder builder)
+    {
+        base.OnModelCreating(builder);   // обязательно: настраивает таблицы Identity
+
+        builder.Entity<TodoItem>(e =>
+        {
+            e.HasOne<IdentityUser>().WithMany()
+                .HasForeignKey(t => t.UserId)
+                .OnDelete(DeleteBehavior.Cascade);   // удалили пользователя, удалились его задачи
+            e.HasIndex(t => t.UserId);
+        });
+    }
 }

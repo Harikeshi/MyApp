@@ -6,6 +6,7 @@ using MyApp.Web.Models;
 using MyApp.Web.Services;
 using Serilog;
 using System.Threading.RateLimiting;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -81,6 +82,7 @@ if (app.Environment.IsDevelopment())
 
 /* endpoints */
 app.MapIdentityApi<IdentityUser>().RequireRateLimiting("auth");
+// todo: indentify 
 // app.MapIdentityApi<IdentityUser>().RequireRateLimiting("auth").AddEndpointFilter<CaptchaFilter>(); // позже, с фронтендом
 
 var todos = app.MapGroup("/todos").RequireAuthorization();
@@ -90,18 +92,33 @@ todos.MapGet("/", async (AppDbContext db) =>
         .Select(t => new TodoResponse(t.Id, t.Title, t.IsDone, t.CreatedAt))
         .ToListAsync());
 
-todos.MapPost("/", async (AppDbContext db, CreateTodoRequest req) =>
+//using System.Security.Claims;
+
+static string UserId(ClaimsPrincipal u) => u.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
+todos.MapGet("/", async (AppDbContext db, ClaimsPrincipal user) =>
 {
-    var todo = new TodoItem { Title = req.Title.Trim() };
+    var uid = UserId(user);
+    return await db.Todos
+        .Where(t => t.UserId == uid)
+        .OrderBy(t => t.Id)
+        .Select(t => new TodoResponse(t.Id, t.Title, t.IsDone, t.CreatedAt))
+        .ToListAsync();
+});
+
+todos.MapPost("/", async (AppDbContext db, ClaimsPrincipal user, CreateTodoRequest req) =>
+{
+    var todo = new TodoItem { Title = req.Title.Trim(), UserId = UserId(user) };
     db.Todos.Add(todo);
     await db.SaveChangesAsync();
     return Results.Created($"/todos/{todo.Id}",
         new TodoResponse(todo.Id, todo.Title, todo.IsDone, todo.CreatedAt));
 });
 
-todos.MapPut("/{id}", async (AppDbContext db, int id, UpdateTodoRequest req) =>
+todos.MapPut("/{id}", async (AppDbContext db, ClaimsPrincipal user, int id, UpdateTodoRequest req) =>
 {
-    var todo = await db.Todos.FindAsync(id);
+    var uid = UserId(user);
+    var todo = await db.Todos.FirstOrDefaultAsync(t => t.Id == id && t.UserId == uid);
     if (todo is null) return Results.NotFound();
     todo.Title = req.Title.Trim();
     todo.IsDone = req.IsDone;
@@ -109,13 +126,44 @@ todos.MapPut("/{id}", async (AppDbContext db, int id, UpdateTodoRequest req) =>
     return Results.NoContent();
 });
 
-todos.MapDelete("/{id}", async (AppDbContext db, int id) =>
+todos.MapDelete("/{id}", async (AppDbContext db, ClaimsPrincipal user, int id) =>
 {
-    var todo = await db.Todos.FindAsync(id);
+    var uid = UserId(user);
+    var todo = await db.Todos.FirstOrDefaultAsync(t => t.Id == id && t.UserId == uid);
     if (todo is null) return Results.NotFound();
     db.Todos.Remove(todo);
     await db.SaveChangesAsync();
     return Results.NoContent();
 });
+
+
+
+//todos.MapPost("/", async (AppDbContext db, CreateTodoRequest req) =>
+//{
+//    var todo = new TodoItem { Title = req.Title.Trim() };
+//    db.Todos.Add(todo);
+//    await db.SaveChangesAsync();
+//    return Results.Created($"/todos/{todo.Id}",
+//        new TodoResponse(todo.Id, todo.Title, todo.IsDone, todo.CreatedAt));
+//});
+
+//todos.MapPut("/{id}", async (AppDbContext db, int id, UpdateTodoRequest req) =>
+//{
+//    var todo = await db.Todos.FindAsync(id);
+//    if (todo is null) return Results.NotFound();
+//    todo.Title = req.Title.Trim();
+//    todo.IsDone = req.IsDone;
+//    await db.SaveChangesAsync();
+//    return Results.NoContent();
+//});
+
+//todos.MapDelete("/{id}", async (AppDbContext db, int id) =>
+//{
+//    var todo = await db.Todos.FindAsync(id);
+//    if (todo is null) return Results.NotFound();
+//    db.Todos.Remove(todo);
+//    await db.SaveChangesAsync();
+//    return Results.NoContent();
+//});
 
 app.Run();
