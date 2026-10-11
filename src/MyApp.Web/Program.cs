@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -5,8 +6,8 @@ using MyApp.Web.Data;
 using MyApp.Web.Models;
 using MyApp.Web.Services;
 using Serilog;
-using System.Threading.RateLimiting;
 using System.Security.Claims;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +19,12 @@ builder.Host.UseSerilog((ctx, services, cfg) => cfg
     .WriteTo.Console());
 
 builder.Services.AddOpenApi();
+
+/* для паролей */
+var dataProtection = builder.Services.AddDataProtection().SetApplicationName("MyApp");
+var keysPath = builder.Configuration["DataProtection:KeysPath"];
+if (!string.IsNullOrEmpty(keysPath))
+    dataProtection.PersistKeysToFileSystem(new DirectoryInfo(keysPath));
 
 /* db */
 builder.Services.AddDbContext<AppDbContext>(o =>
@@ -87,10 +94,10 @@ app.MapIdentityApi<IdentityUser>().RequireRateLimiting("auth");
 
 var todos = app.MapGroup("/todos").RequireAuthorization();
 
-todos.MapGet("/", async (AppDbContext db) =>
-    await db.Todos.OrderBy(t => t.Id)
-        .Select(t => new TodoResponse(t.Id, t.Title, t.IsDone, t.CreatedAt))
-        .ToListAsync());
+//todos.MapGet("/", async (AppDbContext db) =>
+//    await db.Todos.OrderBy(t => t.Id)
+//        .Select(t => new TodoResponse(t.Id, t.Title, t.IsDone, t.CreatedAt))
+//        .ToListAsync());
 
 //using System.Security.Claims;
 
