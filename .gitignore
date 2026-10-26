@@ -3,6 +3,9 @@
 ##
 ## Get latest from `dotnet new gitignore`
 
+deploy.ps1
+publish.ps1
+out
 # dotenv files
 .env
 
