@@ -1,0 +1,208 @@
+﻿<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Мои задачи</title>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            max-width: 520px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        input, button {
+            font: inherit;
+            padding: .5rem;
+        }
+
+            input[type=text], input[type=email], input[type=password] {
+                width: 100%;
+                box-sizing: border-box;
+                margin: .25rem 0 .75rem;
+            }
+
+        .row {
+            display: flex;
+            gap: .5rem;
+        }
+
+        .msg {
+            margin: .75rem 0;
+            min-height: 1.5em;
+        }
+
+        .err {
+            color: #b00020;
+        }
+
+        .ok {
+            color: #1b6e2d;
+        }
+
+        ul {
+            padding: 0;
+            list-style: none;
+        }
+
+        li {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            margin: .4rem 0;
+        }
+
+            li span {
+                flex: 1;
+            }
+
+            li.done span {
+                text-decoration: line-through;
+                color: #777;
+            }
+
+        [hidden] {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <h1>Мои задачи</h1>
+    <div id="msg" class="msg" role="status"></div>
+
+    <section id="auth">
+        <label>Почта <input id="email" type="email" autocomplete="username"></label>
+        <label>Пароль <input id="password" type="password" autocomplete="current-password"></label>
+        <div id="captcha"></div>
+        <div class="row">
+            <button id="login">Войти</button>
+            <button id="register">Зарегистрироваться</button>
+        </div>
+    </section>
+
+    <section id="app" hidden>
+        <div class="row">
+            <input id="title" type="text" maxlength="200" placeholder="Новая задача">
+            <button id="add">Добавить</button>
+        </div>
+        <ul id="list"></ul>
+        <button id="logout">Выйти</button>
+    </section>
+
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstile" async defer></script>
+    <script>
+        const SITEKEY = "0x4AAAAAAFhQ9qvfK9asJRtG";   // публичный ключ Turnstile; пусто = captcha отключена
+const $ = id => document.getElementById(id);
+let token = sessionStorage.getItem("token");
+let widgetId = null;
+
+window.onTurnstile = () => {
+  if (SITEKEY) widgetId = window.turnstile.render("#captcha", { sitekey: SITEKEY });
+};
+
+function show(text, ok = false) {
+  const m = $("msg");
+  m.textContent = text;
+  m.className = "msg " + (ok ? "ok" : "err");
+}
+
+async function api(path, { method = "GET", body, captcha = false } = {}) {
+  const headers = {};
+  if (body) headers["Content-Type"] = "application/json";
+  if (token) headers["Authorization"] = "Bearer " + token;
+  const useCaptcha = captcha && SITEKEY && widgetId !== null;
+  if (useCaptcha) headers["X-Captcha-Token"] = window.turnstile.getResponse(widgetId) || "";
+  const res = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : undefined });
+  if (useCaptcha) window.turnstile.reset(widgetId);          // токен одноразовый
+  if (res.status === 401 && token) logout("Сессия истекла, войдите снова");
+  return res;
+}
+
+async function errorText(res) {
+  if (res.status === 429) return "Слишком много запросов, подождите минуту";
+  try {
+    const data = await res.json();
+    if (data.errors) return Object.values(data.errors).flat().join(" ");
+    if (data.error === "captcha_required") return "Пройдите проверку captcha";
+    if (data.error === "captcha_failed") return "Проверка captcha не пройдена, попробуйте ещё раз";
+    if (data.detail === "NotAllowed") return "Почта не подтверждена: перейдите по ссылке из письма";
+    if (data.detail === "LockedOut") return "Аккаунт временно заблокирован из-за неудачных попыток входа";
+    if (res.status === 401) return "Неверная почта или пароль";
+  } catch { /* тело не JSON */ }
+  return "Ошибка " + res.status;
+}
+
+const creds = () => ({ email: $("email").value.trim(), password: $("password").value });
+
+async function register() {
+  const res = await api("/register", { method: "POST", body: creds(), captcha: true });
+  if (res.ok) show("Готово. Проверьте почту, подтвердите адрес и затем войдите.", true);
+  else show(await errorText(res));
+}
+
+async function login() {
+  const res = await api("/login", { method: "POST", body: creds(), captcha: true });
+  if (!res.ok) return show(await errorText(res));
+  token = (await res.json()).accessToken;
+  sessionStorage.setItem("token", token);
+  $("password").value = "";
+  show("");
+  await showApp();
+}
+
+function logout(message = "") {
+  token = null;
+  sessionStorage.removeItem("token");
+  $("app").hidden = true;
+  $("auth").hidden = false;
+  show(message);
+}
+
+async function showApp() {
+  $("auth").hidden = true;
+  $("app").hidden = false;
+  await loadTodos();
+}
+
+async function loadTodos() {
+  const res = await api("/todos");
+  if (!res.ok) return;
+  const list = $("list");
+  list.replaceChildren();
+  for (const t of await res.json()) {
+    const li = document.createElement("li");
+    if (t.isDone) li.className = "done";
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = t.isDone;
+    cb.onchange = async () => {
+      await api(`/todos/${t.id}`, { method: "PUT", body: { title: t.title, isDone: cb.checked } });
+      loadTodos();
+    };
+    const span = document.createElement("span");
+    span.textContent = t.title;
+    const del = document.createElement("button");
+    del.textContent = "Удалить";
+    del.onclick = async () => { await api(`/todos/${t.id}`, { method: "DELETE" }); loadTodos(); };
+    li.append(cb, span, del);
+    list.append(li);
+  }
+}
+
+async function addTodo() {
+  const title = $("title").value.trim();
+  if (!title) return;
+  const res = await api("/todos", { method: "POST", body: { title } });
+  if (res.ok) { $("title").value = ""; loadTodos(); }
+  else show(await errorText(res));
+}
+
+$("login").onclick = login;
+$("register").onclick = register;
+$("add").onclick = addTodo;
+$("logout").onclick = () => logout();
+if (token) showApp();
+    </script>
+</body>
+</html>

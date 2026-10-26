@@ -13,18 +13,20 @@ public class CaptchaFilter(IHttpClientFactory httpFactory, IConfiguration cfg, I
         if (!Protected.Any(p => path.EndsWith(p, StringComparison.OrdinalIgnoreCase)))
             return await next(ctx);
 
+        var secret = cfg["Turnstile:SecretKey"];
+        if (string.IsNullOrEmpty(secret))
+            return await next(ctx);                       // captcha не настроена
+
         var token = http.Request.Headers["X-Captcha-Token"].ToString();
         if (string.IsNullOrWhiteSpace(token))
             return Results.BadRequest(new { error = "captcha_required" });
 
-        var form = new Dictionary<string, string>
-        {
-            ["secret"] = cfg["Turnstile:SecretKey"]!,
-            ["response"] = token
-        };
+        var form = new Dictionary<string, string> { ["secret"] = secret, ["response"] = token };
         var ip = http.Connection.RemoteIpAddress?.ToString();
         if (ip is not null) form["remoteip"] = ip;
 
+        bool success;
+        var codes = "нет";
         try
         {
             var client = httpFactory.CreateClient();
@@ -32,16 +34,22 @@ public class CaptchaFilter(IHttpClientFactory httpFactory, IConfiguration cfg, I
                 "https://challenges.cloudflare.com/turnstile/v0/siteverify",
                 new FormUrlEncodedContent(form));
             using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
-            if (doc.RootElement.TryGetProperty("success", out var ok) && ok.GetBoolean())
-                return await next(ctx);
-
-            log.LogWarning("Captcha не пройдена для {Path} с {Ip}", path, ip);
-            return Results.BadRequest(new { error = "captcha_failed" });
+            success = doc.RootElement.TryGetProperty("success", out var ok) && ok.GetBoolean();
+            if (!success && doc.RootElement.TryGetProperty("error-codes", out var c))
+                codes = c.ToString();
         }
         catch (Exception ex)
         {
             log.LogError(ex, "Сервис captcha недоступен");
             return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
         }
+
+        if (!success)
+        {
+            log.LogWarning("Captcha не пройдена для {Path} с {Ip}, коды: {Codes}", path, ip, codes);
+            return Results.BadRequest(new { error = "captcha_failed" });
+        }
+
+        return await next(ctx);
     }
 }

@@ -27,8 +27,9 @@ if (!string.IsNullOrEmpty(keysPath))
     dataProtection.PersistKeysToFileSystem(new DirectoryInfo(keysPath));
 
 /* db */
-builder.Services.AddDbContext<AppDbContext>(o =>
-    o.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+if (!builder.Environment.IsEnvironment("Testing")) // Вне тестов 
+    builder.Services.AddDbContext<AppDbContext>(o =>
+        o.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 /* validation */
 builder.Services.AddValidation();
@@ -43,7 +44,30 @@ builder.Services.AddIdentityApiEndpoints<IdentityUser>(o =>
 .AddEntityFrameworkStores<AppDbContext>();
 
 // регистрируем ПОСЛЕ AddIdentityApiEndpoints, чтобы наша реализация победила
-builder.Services.AddSingleton<IEmailSender<IdentityUser>, LoggingEmailSender>();
+//builder.Services.AddSingleton<IEmailSender<IdentityUser>, LoggingEmailSender>();
+//if (builder.Environment.IsDevelopment())
+//    builder.Services.AddSingleton<IEmailSender<IdentityUser>, LoggingEmailSender>();
+//else
+//    builder.Services.AddSingleton<IEmailSender<IdentityUser>, SendGridEmailSender>();
+//    //builder.Services.AddSingleton<IEmailSender<IdentityUser>, BrevoEmailSender>();
+////builder.Services.AddSingleton<IEmailSender<IdentityUser>, SmtpEmailSender>(); SendGridEmailSender
+
+var emailProvider = builder.Configuration["Email:Provider"]
+    ?? (builder.Environment.IsDevelopment() ? "Logging" : "SendGrid");
+
+switch (emailProvider)
+{
+    case "Resend":
+        builder.Services.AddSingleton<IEmailSender<IdentityUser>, ResendEmailSender>();
+        break;
+    case "SendGrid":
+        builder.Services.AddSingleton<IEmailSender<IdentityUser>, SendGridEmailSender>();
+        break;
+    default:
+        builder.Services.AddSingleton<IEmailSender<IdentityUser>, LoggingEmailSender>();
+        break;
+}
+
 
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<CaptchaFilter>();
@@ -53,14 +77,19 @@ builder.Services.AddRateLimiter(o =>
 {
     o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
-    o.AddPolicy("auth", http => RateLimitPartition.GetFixedWindowLimiter(
-        partitionKey: http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-        factory: _ => new FixedWindowRateLimiterOptions
-        {
-            PermitLimit = 10,
-            Window = TimeSpan.FromMinutes(1),
-            QueueLimit = 0
-        }));
+    o.AddPolicy("auth", http =>
+    {
+        var limit = http.RequestServices.GetRequiredService<IConfiguration>()
+            .GetValue("RateLimit:AuthPerMinute", 10);
+        return RateLimitPartition.GetFixedWindowLimiter(
+            http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = limit,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            });
+    });
 
     o.OnRejected = (ctx, ct) =>
     {
@@ -74,12 +103,19 @@ builder.Services.AddRateLimiter(o =>
 
 var app = builder.Build();
 
+if (app.Environment.IsProduction() && string.IsNullOrEmpty(app.Configuration["Turnstile:SecretKey"]))
+    app.Logger.LogWarning("Turnstile:SecretKey не задан: captcha отключена"); // сразу после var app = builder.Build();
+
 /* middleware: порядок важен */
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
 });
+
+app.UseDefaultFiles();      // отдаёт wwwroot/index.html на "/"
+app.UseStaticFiles();
 app.UseSerilogRequestLogging();
+
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -88,7 +124,16 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 
 /* endpoints */
-app.MapIdentityApi<IdentityUser>().RequireRateLimiting("auth");
+//app.MapIdentityApi<IdentityUser>().RequireRateLimiting("auth");
+app.MapIdentityApi<IdentityUser>().RequireRateLimiting("auth").AddEndpointFilter(async (context, next) =>
+{
+    // Здесь вызовите ваш CaptchaFilter или реализуйте логику проверки капчи
+    // Например, получите экземпляр фильтра через context.HttpContext.RequestServices
+    // и вызовите его метод InvokeAsync
+    var captchaFilter = context.HttpContext.RequestServices.GetRequiredService<CaptchaFilter>();
+    return await captchaFilter.InvokeAsync(context, next);
+});
+
 // todo: indentify 
 // app.MapIdentityApi<IdentityUser>().RequireRateLimiting("auth").AddEndpointFilter<CaptchaFilter>(); // позже, с фронтендом
 
@@ -143,34 +188,6 @@ todos.MapDelete("/{id}", async (AppDbContext db, ClaimsPrincipal user, int id) =
     return Results.NoContent();
 });
 
-
-
-//todos.MapPost("/", async (AppDbContext db, CreateTodoRequest req) =>
-//{
-//    var todo = new TodoItem { Title = req.Title.Trim() };
-//    db.Todos.Add(todo);
-//    await db.SaveChangesAsync();
-//    return Results.Created($"/todos/{todo.Id}",
-//        new TodoResponse(todo.Id, todo.Title, todo.IsDone, todo.CreatedAt));
-//});
-
-//todos.MapPut("/{id}", async (AppDbContext db, int id, UpdateTodoRequest req) =>
-//{
-//    var todo = await db.Todos.FindAsync(id);
-//    if (todo is null) return Results.NotFound();
-//    todo.Title = req.Title.Trim();
-//    todo.IsDone = req.IsDone;
-//    await db.SaveChangesAsync();
-//    return Results.NoContent();
-//});
-
-//todos.MapDelete("/{id}", async (AppDbContext db, int id) =>
-//{
-//    var todo = await db.Todos.FindAsync(id);
-//    if (todo is null) return Results.NotFound();
-//    db.Todos.Remove(todo);
-//    await db.SaveChangesAsync();
-//    return Results.NoContent();
-//});
-
 app.Run();
+
+public partial class Program { }
