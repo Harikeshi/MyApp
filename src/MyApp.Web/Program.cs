@@ -2,12 +2,15 @@ using Microsoft.AspNetCore.Authentication.BearerToken;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using MyApp.Web.Data;
 using MyApp.Web.Models;
 using MyApp.Web.Services;
 using Serilog;
 using System.Security.Claims;
+using System.Text;
+using System.Text.Encodings.Web;
 using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -138,6 +141,25 @@ app.MapIdentityApi<IdentityUser>().RequireRateLimiting("auth").AddEndpointFilter
     return await captchaFilter.InvokeAsync(context, next);
 });
 
+app.MapPost("/account/forgot", async (
+        ForgotRequest req,
+        UserManager<IdentityUser> users,
+        IEmailSender<IdentityUser> sender) =>
+{
+    var user = await users.FindByEmailAsync(req.Email);
+    if (user is null)
+        return Results.NotFound(new { error = "email_not_registered" });
+    if (!await users.IsEmailConfirmedAsync(user))
+        return Results.BadRequest(new { error = "email_not_confirmed" });
+
+    var token = await users.GeneratePasswordResetTokenAsync(user);
+    var code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+    await sender.SendPasswordResetCodeAsync(user, req.Email, HtmlEncoder.Default.Encode(code));
+    return Results.Ok();
+})
+.RequireRateLimiting("auth")
+.AddEndpointFilter<CaptchaFilter>();
+
 app.MapPost("/logout", async (ClaimsPrincipal principal, UserManager<IdentityUser> users) =>
 {
     var user = await users.GetUserAsync(principal);
@@ -191,5 +213,7 @@ todos.MapDelete("/{id}", async (AppDbContext db, ClaimsPrincipal user, int id) =
 });
 
 app.Run();
+
+public record ForgotRequest(string Email);
 
 public partial class Program { }

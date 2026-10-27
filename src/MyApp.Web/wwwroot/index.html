@@ -93,6 +93,15 @@
         <button id="doReset">Сохранить пароль</button>
     </section>
 
+    <section id="app" hidden>
+        <div class="row">
+            <input id="title" type="text" maxlength="200" placeholder="Новая задача">
+            <button id="add">Добавить</button>
+        </div>
+        <ul id="list"></ul>
+        <button id="logout">Выйти</button>
+    </section>
+
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstile" async defer></script>
     <script>
         const SITEKEY = "0x4AAAAAAFhQ9qvfK9asJRtG";   // публичный ключ Turnstile; пусто = captcha отключена
@@ -126,8 +135,8 @@
             if (res.status === 429) return "Слишком много запросов, подождите минуту";
             try {
                 const data = await res.json();
-                if (data.errors) return Object.values(data.errors).flat().join(" ");
                 if (data.errors && data.errors.InvalidToken) return "Ссылка недействительна или устарела: запросите сброс заново";
+                if (data.errors) return Object.values(data.errors).flat().join(" ");
                 if (data.error === "captcha_required") return "Пройдите проверку captcha";
                 if (data.error === "captcha_failed") return "Проверка captcha не пройдена, попробуйте ещё раз";
                 if (data.detail === "NotAllowed") return "Почта не подтверждена: перейдите по ссылке из письма";
@@ -213,9 +222,19 @@
         async function sendReset() {
             const email = $("email").value.trim();
             if (!email) return show("Введите почту");
-            const res = await api("/forgotPassword", { method: "POST", body: { email }, captcha: true });
-            if (res.ok) show("Если такой адрес зарегистрирован и подтверждён, мы отправили письмо со ссылкой для сброса пароля.", true);
-            else show(await errorText(res));
+            const res = await api("/account/forgot", { method: "POST", body: { email }, captcha: true });
+            if (res.ok) return show("Мы отправили письмо со ссылкой для сброса пароля.", true);
+            if (res.status === 404) {
+                const data = await res.clone().json().catch(() => null);
+                return show(data?.error === "email_not_registered"
+                    ? "Пользователь с такой почтой не зарегистрирован."
+                    : "Сервис временно недоступен, попробуйте позже.");
+            }
+            try {
+                const data = await res.clone().json();
+                if (data.error === "email_not_confirmed") return show("Почта ещё не подтверждена: сначала подтвердите её по ссылке из письма.");
+            } catch { /* не JSON */ }
+            show(await errorText(res));
         }
 
         // Параметры из ссылки в письме: #reset=1&email=...&code=...
@@ -256,8 +275,8 @@
         $("logout").onclick = async () => {
             try { await api("/logout", { method: "POST" }); } catch { /* нет сети: выходим локально */ }
             logout();
-};
-if (token && !resetParams) showApp();
+        };
+        if (token && !resetParams) showApp();
     </script>
 </body>
 </html>
