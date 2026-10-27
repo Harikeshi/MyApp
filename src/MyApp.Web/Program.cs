@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Diagnostics.HealthChecks; // Для проверки /health     
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Authentication.BearerToken;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -8,6 +10,7 @@ using MyApp.Web.Data;
 using MyApp.Web.Models;
 using MyApp.Web.Services;
 using Serilog;
+using Serilog.Events;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Encodings.Web;
@@ -72,6 +75,9 @@ switch (emailProvider)
         break;
 }
 
+/* Проверка базы */
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<AppDbContext>("database", tags: ["ready"]);
 
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<CaptchaFilter>();
@@ -118,9 +124,18 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 
 app.UseDefaultFiles();      // отдаёт wwwroot/index.html на "/"
 app.UseStaticFiles();
-app.UseSerilogRequestLogging();
+//app.UseSerilogRequestLogging();
+app.UseSerilogRequestLogging(o => o.GetLevel = (ctx, _, ex) =>
+    ex is OperationCanceledException && ctx.RequestAborted.IsCancellationRequested ? LogEventLevel.Debug
+    : ctx.Request.Path.StartsWithSegments("/health") && ctx.Response.StatusCode < 500 ? LogEventLevel.Verbose
+    : ex is not null || ctx.Response.StatusCode >= 500 ? LogEventLevel.Error
+    : LogEventLevel.Information);
 
 app.UseRateLimiter();
+// после UseRateLimiter
+app.MapHealthChecks("/health", new HealthCheckOptions { Predicate = _ => false });          // «процесс отвечает»
+app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = r => r.Tags.Contains("ready") });  // + база данных
+
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -128,7 +143,6 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 
 /* endpoints */
-//app.MapIdentityApi<IdentityUser>().RequireRateLimiting("auth");
 app.MapIdentityApi<IdentityUser>().RequireRateLimiting("auth").AddEndpointFilter(async (context, next) =>
 {
     // Здесь вызовите ваш CaptchaFilter или реализуйте логику проверки капчи

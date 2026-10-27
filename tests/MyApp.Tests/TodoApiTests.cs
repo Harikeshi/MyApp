@@ -7,6 +7,14 @@ namespace MyApp.Tests;
 public class TodoApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
 {
     [Fact]
+    public async Task Health_endpoints_return_200()
+    {
+        var client = factory.CreateClient();
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/health")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/health/ready")).StatusCode);
+    }
+
+    [Fact]
     public async Task List_without_token_returns_401()
     {
         var client = factory.CreateClient();
