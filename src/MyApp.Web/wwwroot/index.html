@@ -123,15 +123,25 @@
             const headers = {};
             if (body) headers["Content-Type"] = "application/json";
             if (token) headers["Authorization"] = "Bearer " + token;
+
             const useCaptcha = captcha && SITEKEY && widgetId !== null;
             if (useCaptcha) headers["X-Captcha-Token"] = window.turnstile.getResponse(widgetId) || "";
-            const res = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : undefined });
-            if (useCaptcha) window.turnstile.reset(widgetId);          // токен одноразовый
-            if (res.status === 401 && token) logout("Сессия истекла, войдите снова");
+
+            let res;
+            try {
+                res = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : undefined });
+            } catch {
+                return Response.error();                       // сети нет: status 0, res.ok === false
+            } finally {
+                if (useCaptcha) window.turnstile.reset(widgetId);   // токен одноразовый
+            }
+
+            if (res.status === 401 && token && path !== "/logout") logout("Сессия истекла, войдите снова");
             return res;
         }
 
         async function errorText(res) {
+            if (res.status === 0) return "Нет связи с сервером, попробуйте ещё раз";
             if (res.status === 429) return "Слишком много запросов, подождите минуту";
             try {
                 const data = await res.json();
