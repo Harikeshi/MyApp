@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication.BearerToken;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
@@ -40,8 +41,11 @@ builder.Services.AddIdentityApiEndpoints<IdentityUser>(o =>
 {
     o.SignIn.RequireConfirmedEmail = true;
     o.User.RequireUniqueEmail = true;
-})
-.AddEntityFrameworkStores<AppDbContext>();
+}).AddEntityFrameworkStores<AppDbContext>();
+
+// Время жизни токена, но вход придется делать каждые полчаса, пока не будет /refresh
+builder.Services.Configure<BearerTokenOptions>(IdentityConstants.BearerScheme,
+    o => o.BearerTokenExpiration = TimeSpan.FromMinutes(30));
 
 // регистрируем ПОСЛЕ AddIdentityApiEndpoints, чтобы наша реализация победила
 //builder.Services.AddSingleton<IEmailSender<IdentityUser>, LoggingEmailSender>();
@@ -134,17 +138,15 @@ app.MapIdentityApi<IdentityUser>().RequireRateLimiting("auth").AddEndpointFilter
     return await captchaFilter.InvokeAsync(context, next);
 });
 
-// todo: indentify 
-// app.MapIdentityApi<IdentityUser>().RequireRateLimiting("auth").AddEndpointFilter<CaptchaFilter>(); // позже, с фронтендом
+app.MapPost("/logout", async (ClaimsPrincipal principal, UserManager<IdentityUser> users) =>
+{
+    var user = await users.GetUserAsync(principal);
+    if (user is not null)
+        await users.UpdateSecurityStampAsync(user);   // refresh-токены перестают работать
+    return Results.NoContent();
+}).RequireAuthorization();
 
 var todos = app.MapGroup("/todos").RequireAuthorization();
-
-//todos.MapGet("/", async (AppDbContext db) =>
-//    await db.Todos.OrderBy(t => t.Id)
-//        .Select(t => new TodoResponse(t.Id, t.Title, t.IsDone, t.CreatedAt))
-//        .ToListAsync());
-
-//using System.Security.Claims;
 
 static string UserId(ClaimsPrincipal u) => u.FindFirstValue(ClaimTypes.NameIdentifier)!;
 

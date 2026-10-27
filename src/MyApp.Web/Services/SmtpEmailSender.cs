@@ -221,11 +221,22 @@ public class ResendEmailSender(IHttpClientFactory httpFactory, IConfiguration cf
             text: $"Чтобы задать новый пароль, откройте ссылку:\n{WebUtility.HtmlDecode(link)}\n\n" +
                   $"Если вы не запрашивали сброс, проигнорируйте это письмо.");
 
-    public Task SendPasswordResetCodeAsync(IdentityUser user, string email, string code) =>
-        SendAsync(email, "Код для сброса пароля на sshch.online",
-            html: $"<p>Ваш код: <b>{code}</b></p>",
-            text: $"Ваш код: {code}");
-
+    //public Task SendPasswordResetCodeAsync(IdentityUser user, string email, string code) =>
+    //SendAsync(email, "Код для сброса пароля на sshch.online",
+    //    html: $"<p>Ваш код: <b>{code}</b></p>",
+    //    text: $"Ваш код: {code}");
+    public Task SendPasswordResetCodeAsync(IdentityUser user, string email, string code)
+    {
+        var link = ResetLink.Build(cfg, email, code);
+        var htmlLink = WebUtility.HtmlEncode(link);
+        return SendAsync(email, "Сброс пароля на sshch.online",
+            html: $"<p>Вы запросили сброс пароля на сайте sshch.online.</p>" +
+                  $"<p><a href=\"{htmlLink}\">Задать новый пароль</a></p>" +
+                  $"<p>Если ссылка не открывается, скопируйте её в браузер:<br>{htmlLink}</p>" +
+                  $"<p>Если вы не запрашивали сброс, проигнорируйте это письмо: пароль не изменится.</p>",
+            text: $"Вы запросили сброс пароля на сайте sshch.online.\n\nЗадать новый пароль:\n{link}\n\n" +
+                  $"Если вы не запрашивали сброс, проигнорируйте это письмо: пароль не изменится.");
+    }
     private async Task SendAsync(string to, string subject, string html, string text)
     {
         var http = httpFactory.CreateClient();
