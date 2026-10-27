@@ -67,9 +67,6 @@ switch (emailProvider)
     case "Resend":
         builder.Services.AddSingleton<IEmailSender<IdentityUser>, ResendEmailSender>();
         break;
-    case "SendGrid":
-        builder.Services.AddSingleton<IEmailSender<IdentityUser>, SendGridEmailSender>();
-        break;
     default:
         builder.Services.AddSingleton<IEmailSender<IdentityUser>, LoggingEmailSender>();
         break;
