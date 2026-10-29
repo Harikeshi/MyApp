@@ -25,10 +25,6 @@ public class ResendEmailSender(IHttpClientFactory httpFactory, IConfiguration cf
             text: $"Чтобы задать новый пароль, откройте ссылку:\n{WebUtility.HtmlDecode(link)}\n\n" +
                   $"Если вы не запрашивали сброс, проигнорируйте это письмо.");
 
-    //public Task SendPasswordResetCodeAsync(IdentityUser user, string email, string code) =>
-    //SendAsync(email, "Код для сброса пароля на sshch.online",
-    //    html: $"<p>Ваш код: <b>{code}</b></p>",
-    //    text: $"Ваш код: {code}");
     public Task SendPasswordResetCodeAsync(IdentityUser user, string email, string code)
     {
         var link = ResetLink.Build(cfg, email, code);
@@ -55,13 +51,23 @@ public class ResendEmailSender(IHttpClientFactory httpFactory, IConfiguration cf
             text
         });
 
-        using var resp = await http.SendAsync(req);
-        var body = await resp.Content.ReadAsStringAsync();
-        if (!resp.IsSuccessStatusCode)
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+
+        try
         {
-            log.LogError("Resend вернул {Status}: {Body}", (int)resp.StatusCode, body);
-            throw new InvalidOperationException($"Письмо не отправлено ({(int)resp.StatusCode})");
+            using var resp = await http.SendAsync(req, cts.Token);
+            var body = await resp.Content.ReadAsStringAsync(cts.Token);
+            if (!resp.IsSuccessStatusCode)
+            {
+                log.LogError("Resend вернул {Status}: {Body}", (int)resp.StatusCode, body);
+                throw new InvalidOperationException($"Письмо не отправлено ({(int)resp.StatusCode})");
+            }
+            log.LogInformation("Письмо отправлено: {Subject}, ответ {Status}", subject, (int)resp.StatusCode);
         }
-        log.LogInformation("Письмо отправлено: {Subject}, ответ {Status}", subject, (int)resp.StatusCode);
+        catch (OperationCanceledException) when (cts.IsCancellationRequested)
+        {
+            log.LogError("Resend не ответил за 10 секунд");
+            throw;
+        }
     }
 }

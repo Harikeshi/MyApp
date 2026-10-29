@@ -27,16 +27,22 @@ public class CaptchaFilter(IHttpClientFactory httpFactory, IConfiguration cfg, I
 
         bool success;
         var codes = "нет";
+        var ct = http.RequestAborted;
         try
         {
-            var client = httpFactory.CreateClient();
+            var client = httpFactory.CreateClient();            
             using var resp = await client.PostAsync(
                 "https://challenges.cloudflare.com/turnstile/v0/siteverify",
-                new FormUrlEncodedContent(form));
-            using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
+                new FormUrlEncodedContent(form), ct);
+            using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(ct));
             success = doc.RootElement.TryGetProperty("success", out var ok) && ok.GetBoolean();
             if (!success && doc.RootElement.TryGetProperty("error-codes", out var c))
                 codes = c.ToString();
+        }
+        // todo: catch (HttpRequestException ex) when (ex.StatusCode is HttpStatusCode.BadGateway or HttpStatusCode.ServiceUnavailable or HttpStatusCode.GatewayTimeout)
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return Results.StatusCode(StatusCodes.Status499ClientClosedRequest);
         }
         catch (Exception ex)
         {

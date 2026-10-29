@@ -6,6 +6,9 @@ public record CreateTodoRequest
 {
     [Required, StringLength(200, MinimumLength = 1)]
     public string Title { get; init; } = "";
+    public DateOnly? DueDate { get; init; }
+    [EnumDataType(typeof(Priority))]
+    public Priority Priority { get; init; } = Priority.Normal;
 }
 
 public record UpdateTodoRequest
@@ -13,6 +16,9 @@ public record UpdateTodoRequest
     [Required, StringLength(200, MinimumLength = 1)]
     public string Title { get; init; } = "";
     public bool IsDone { get; init; }
+    public DateOnly? DueDate { get; init; }
+    [EnumDataType(typeof(Priority))]
+    public Priority Priority { get; init; } = Priority.Normal;
 }
 
-public record TodoResponse(int Id, string Title, bool IsDone, DateTime CreatedAt);
+public record TodoResponse(int Id, string Title, bool IsDone, DateTime CreatedAt, DateOnly? DueDate, Priority Priority);

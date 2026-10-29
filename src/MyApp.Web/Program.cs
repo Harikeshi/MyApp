@@ -1,11 +1,11 @@
-using Microsoft.Extensions.Diagnostics.HealthChecks; // Для проверки /health     
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Authentication.BearerToken;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Diagnostics.HealthChecks; // Для проверки /health     
 using MyApp.Web.Data;
 using MyApp.Web.Models;
 using MyApp.Web.Services;
@@ -14,6 +14,8 @@ using Serilog.Events;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Encodings.Web;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -26,6 +28,10 @@ builder.Host.UseSerilog((ctx, services, cfg) => cfg
     .WriteTo.Console());
 
 builder.Services.AddOpenApi();
+
+/* настройка JSON, для отображения high */
+builder.Services.ConfigureHttpJsonOptions(o =>
+    o.SerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)));
 
 /* для паролей */
 var dataProtection = builder.Services.AddDataProtection().SetApplicationName("MyApp");
@@ -125,6 +131,7 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 app.UseDefaultFiles();      // отдаёт wwwroot/index.html на "/"
 app.UseStaticFiles();
 //app.UseSerilogRequestLogging();
+/* Условие включает настройки, чтобы cancelationtoken не попадали в ошибки */
 app.UseSerilogRequestLogging(o => o.GetLevel = (ctx, _, ex) =>
     ex is OperationCanceledException && ctx.RequestAborted.IsCancellationRequested ? LogEventLevel.Debug
     : ctx.Request.Path.StartsWithSegments("/health") && ctx.Response.StatusCode < 500 ? LogEventLevel.Verbose
@@ -183,40 +190,48 @@ var todos = app.MapGroup("/todos").RequireAuthorization();
 
 static string UserId(ClaimsPrincipal u) => u.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
-todos.MapGet("/", async (AppDbContext db, ClaimsPrincipal user) =>
+todos.MapGet("/", async (AppDbContext db, ClaimsPrincipal user, CancellationToken ct) =>
 {
     var uid = UserId(user);
     return await db.Todos
         .Where(t => t.UserId == uid)
-        .OrderBy(t => t.Id)
-        .Select(t => new TodoResponse(t.Id, t.Title, t.IsDone, t.CreatedAt))
-        .ToListAsync();
+        .OrderBy(t => t.IsDone)
+        .ThenByDescending(t => t.Priority)
+        .ThenBy(t => t.DueDate == null)      // задачи без срока в конец
+        .ThenBy(t => t.DueDate)
+        .ThenBy(t => t.Id)
+        .Select(t => new TodoResponse(t.Id, t.Title, t.IsDone, t.CreatedAt, t.DueDate, t.Priority))
+        .ToListAsync(ct);
 });
 
-todos.MapPost("/", async (AppDbContext db, ClaimsPrincipal user, CreateTodoRequest req) =>
+todos.MapPost("/", async (AppDbContext db, ClaimsPrincipal user, CreateTodoRequest req, CancellationToken ct) =>
 {
-    var todo = new TodoItem { Title = req.Title.Trim(), UserId = UserId(user) };
+    var todo = new TodoItem { Title = req.Title.Trim(), UserId = UserId(user), DueDate = req.DueDate, Priority = req.Priority };
+    //new TodoItem { Title = req.Title.Trim(), UserId = UserId(user) };
     db.Todos.Add(todo);
-    await db.SaveChangesAsync();
+    await db.SaveChangesAsync(ct);
     return Results.Created($"/todos/{todo.Id}",
-        new TodoResponse(todo.Id, todo.Title, todo.IsDone, todo.CreatedAt));
+        new TodoResponse(todo.Id, todo.Title, todo.IsDone, todo.CreatedAt, todo.DueDate, todo.Priority));
+        //new TodoResponse(todo.Id, todo.Title, todo.IsDone, todo.CreatedAt));
 });
 
-todos.MapPut("/{id}", async (AppDbContext db, ClaimsPrincipal user, int id, UpdateTodoRequest req) =>
+todos.MapPut("/{id}", async (AppDbContext db, ClaimsPrincipal user, int id, UpdateTodoRequest req, CancellationToken ct) =>
 {
     var uid = UserId(user);
-    var todo = await db.Todos.FirstOrDefaultAsync(t => t.Id == id && t.UserId == uid);
+    var todo = await db.Todos.FirstOrDefaultAsync(t => t.Id == id && t.UserId == uid, ct);
     if (todo is null) return Results.NotFound();
     todo.Title = req.Title.Trim();
     todo.IsDone = req.IsDone;
-    await db.SaveChangesAsync();
+    todo.DueDate = req.DueDate;
+    todo.Priority = req.Priority;
+    await db.SaveChangesAsync(ct);
     return Results.NoContent();
 });
 
-todos.MapDelete("/{id}", async (AppDbContext db, ClaimsPrincipal user, int id) =>
+todos.MapDelete("/{id}", async (AppDbContext db, ClaimsPrincipal user, int id, CancellationToken ct) =>
 {
     var uid = UserId(user);
-    var todo = await db.Todos.FirstOrDefaultAsync(t => t.Id == id && t.UserId == uid);
+    var todo = await db.Todos.FirstOrDefaultAsync(t => t.Id == id && t.UserId == uid, ct);
     if (todo is null) return Results.NotFound();
     db.Todos.Remove(todo);
     await db.SaveChangesAsync();

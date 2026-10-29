@@ -17,12 +17,6 @@ public class LoggingEmailSender(ILogger<LoggingEmailSender> log, IConfiguration 
         return Task.CompletedTask; 
     }
 
-    //public Task SendPasswordResetCodeAsync(IdentityUser user, string email, string code)
-    //{
-    //    log.LogInformation("DEV: код сброса для {Email}: {Code}", email, WebUtility.HtmlDecode(code)); 
-    //    return Task.CompletedTask; 
-    //}
-
     public Task SendPasswordResetCodeAsync(IdentityUser user, string email, string code)
     {
         log.LogInformation("DEV: ссылка сброса для {Email}: {Link}", email, ResetLink.Build(cfg, email, code));

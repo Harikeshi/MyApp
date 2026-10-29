@@ -30,7 +30,7 @@ public class TodoApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
         var created = await client.PostAsJsonAsync("/todos", new { title = "Купить молоко" });
         Assert.Equal(HttpStatusCode.Created, created.StatusCode);
 
-        var list = await client.GetFromJsonAsync<List<TodoResponse>>("/todos");
+        var list = await client.GetFromJsonAsync<List<TodoResponse>>("/todos", TestJson.Options);
         var item = Assert.Single(list!);
         Assert.Equal("Купить молоко", item.Title);
         Assert.False(item.IsDone);
@@ -51,15 +51,15 @@ public class TodoApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
         var bob = await factory.CreateAuthenticatedClientAsync();
 
         var created = await alice.PostAsJsonAsync("/todos", new { title = "Задача Алисы" });
-        var todo = await created.Content.ReadFromJsonAsync<TodoResponse>();
+        var todo = await created.Content.ReadFromJsonAsync<TodoResponse>(TestJson.Options);
 
-        var bobList = await bob.GetFromJsonAsync<List<TodoResponse>>("/todos");
+        var bobList = await bob.GetFromJsonAsync<List<TodoResponse>>("/todos", TestJson.Options);
         Assert.Empty(bobList!);
 
         var delete = await bob.DeleteAsync($"/todos/{todo!.Id}");
-        Assert.Equal(HttpStatusCode.NotFound, delete.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, delete.StatusCode);        
 
-        var aliceList = await alice.GetFromJsonAsync<List<TodoResponse>>("/todos");
+        var aliceList = await alice.GetFromJsonAsync<List<TodoResponse>>("/todos", TestJson.Options);
         Assert.Single(aliceList!);
     }
 }
