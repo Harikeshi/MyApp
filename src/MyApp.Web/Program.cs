@@ -41,9 +41,9 @@ if (!string.IsNullOrEmpty(keysPath))
     dataProtection.PersistKeysToFileSystem(new DirectoryInfo(keysPath));
 
 /* db */
-if (!builder.Environment.IsEnvironment("Testing")) // Вне тестов 
-    builder.Services.AddDbContext<AppDbContext>(o =>
-        o.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+if (!builder.Environment.IsEnvironment("Testing")) // Вне тестов
+                builder.Services.AddDbContext<AppDbContext>(o =>
+                    o.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 /* validation */
 builder.Services.AddValidation();

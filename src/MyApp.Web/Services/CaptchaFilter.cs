@@ -2,12 +2,17 @@
 
 namespace MyApp.Web.Services;
 
-public class CaptchaFilter(IHttpClientFactory httpFactory, IConfiguration cfg, ILogger<CaptchaFilter> log) : IEndpointFilter
+public class CaptchaFilter(IHttpClientFactory httpFactory, IConfiguration cfg, ILogger<CaptchaFilter> log, IWebHostEnvironment env) : IEndpointFilter
 {
     private static readonly string[] Protected = ["/register", "/login", "/forgotPassword", "/resendConfirmationEmail"];
 
     public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext ctx, EndpointFilterDelegate next)
     {
+        if (env.IsDevelopment())
+        {
+            return await next(ctx);
+        }
+
         var http = ctx.HttpContext;
         var path = http.Request.Path.Value ?? "";
         if (!Protected.Any(p => path.EndsWith(p, StringComparison.OrdinalIgnoreCase)))
