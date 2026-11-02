@@ -94,4 +94,26 @@ public class AuthFlowTests(ApiFactory factory) : IClassFixture<ApiFactory>
 
         Assert.Equal("https://example.test/#reset=1&email=a%2Bb%40example.com&code=abc%26def", link);
     }
+
+    [Fact]
+    public async Task Me_returns_the_current_user_name()
+    {
+        var email = await factory.CreateConfirmedUserAsync();
+        var tokens = await factory.LoginAsync(email);
+        var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokens.AccessToken);
+
+        var me = await client.GetFromJsonAsync<MeResponse>("/me");
+
+        Assert.Equal(email, me!.Name);
+    }
+
+    [Fact]
+    public async Task Me_without_token_returns_401()
+    {
+        var response = await factory.CreateClient().GetAsync("/me");
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    private record MeResponse(string Name);
 }

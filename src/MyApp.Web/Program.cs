@@ -178,6 +178,9 @@ app.MapPost("/account/forgot", async (
 .RequireRateLimiting("auth")
 .AddEndpointFilter<CaptchaFilter>();
 
+app.MapGet("/me", (ClaimsPrincipal user) => new { name = user.Identity?.Name })
+   .RequireAuthorization();
+
 app.MapPost("/logout", async (ClaimsPrincipal principal, UserManager<IdentityUser> users) =>
 {
     var user = await users.GetUserAsync(principal);

@@ -5,6 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Мои задачи</title>
     <style>
+        select {
+            font: inherit;
+            padding: .5rem;
+        }
+
+        .due {
+            color: #555;
+            font-size: .9em;
+            white-space: nowrap;
+        }
+
+            .due.overdue {
+                color: #b00020;
+                font-weight: 600;
+            }
+
+        .prio {
+            font-size: .85em;
+        }
+
+        li.high .prio {
+            color: #b00020;
+            font-weight: 600;
+        }
+
+        li.low .prio {
+            color: #777;
+        }
+
         body {
             font-family: system-ui, sans-serif;
             max-width: 520px;
@@ -65,9 +94,28 @@
         [hidden] {
             display: none !important;
         }
+        #topbar {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: .75rem;
+            margin-bottom: 1rem;
+        }
+
+        #userEmail {
+            min-width: 0;
+            color: #555;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body>
+    <header id="topbar" hidden>
+        <span id="userEmail"></span>
+        <button id="logout">Выйти</button>
+    </header>
     <h1>Мои задачи</h1>
     <div id="msg" class="msg" role="status"></div>
 
@@ -92,14 +140,20 @@
         <label>Повторите пароль <input id="newPassword2" type="password" autocomplete="new-password"></label>
         <button id="doReset">Сохранить пароль</button>
     </section>
-
     <section id="app" hidden>
         <div class="row">
             <input id="title" type="text" maxlength="200" placeholder="Новая задача">
+        </div>
+        <div class="row">
+            <input id="due" type="date" title="Срок">
+            <select id="priority" title="Приоритет">
+                <option value="low">Низкий</option>
+                <option value="normal" selected>Обычный</option>
+                <option value="high">Высокий</option>
+            </select>
             <button id="add">Добавить</button>
         </div>
         <ul id="list"></ul>
-        <button id="logout">Выйти</button>
     </section>
 
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstile" async defer></script>
@@ -188,27 +242,62 @@
             await loadTodos();
         }
 
+        const PRIORITY_LABEL = { low: "низкий", normal: "", high: "высокий" };
+
+        function formatDate(iso) {                       // "2027-01-15" -> "15.01.2027", без сдвига часовых поясов
+            const [y, m, d] = iso.split("-");
+            return `${d}.${m}.${y}`;
+        }
+
         async function loadTodos() {
             const res = await api("/todos");
-            if (!res.ok) return;
+            if (!res.ok) {
+                show("Не удалось загрузить задачи: " + await errorText(res));
+                return;
+            }
+            const today = new Date().toLocaleDateString("sv-SE");        // локальная дата в виде YYYY-MM-DD
             const list = $("list");
             list.replaceChildren();
+
             for (const t of await res.json()) {
                 const li = document.createElement("li");
-                if (t.isDone) li.className = "done";
+                li.className = [t.isDone ? "done" : "", t.priority].filter(Boolean).join(" ");
+
                 const cb = document.createElement("input");
                 cb.type = "checkbox";
                 cb.checked = t.isDone;
                 cb.onchange = async () => {
-                    await api(`/todos/${t.id}`, { method: "PUT", body: { title: t.title, isDone: cb.checked } });
+                    const r = await api(`/todos/${t.id}`, {
+                        method: "PUT",
+                        body: { title: t.title, isDone: cb.checked, dueDate: t.dueDate, priority: t.priority }
+                    });
+                    if (!r.ok) show(await errorText(r));
                     loadTodos();
                 };
+
                 const span = document.createElement("span");
                 span.textContent = t.title;
+
+                li.append(cb, span);
+
+                if (PRIORITY_LABEL[t.priority]) {
+                    const prio = document.createElement("span");
+                    prio.className = "prio";
+                    prio.textContent = PRIORITY_LABEL[t.priority];
+                    li.append(prio);
+                }
+                if (t.dueDate) {
+                    const due = document.createElement("span");
+                    due.className = "due" + (!t.isDone && t.dueDate < today ? " overdue" : "");
+                    due.textContent = formatDate(t.dueDate);
+                    li.append(due);
+                }
+
                 const del = document.createElement("button");
                 del.textContent = "Удалить";
                 del.onclick = async () => { await api(`/todos/${t.id}`, { method: "DELETE" }); loadTodos(); };
-                li.append(cb, span, del);
+                li.append(del);
+
                 list.append(li);
             }
         }
@@ -216,9 +305,19 @@
         async function addTodo() {
             const title = $("title").value.trim();
             if (!title) return;
-            const res = await api("/todos", { method: "POST", body: { title } });
-            if (res.ok) { $("title").value = ""; loadTodos(); }
-            else show(await errorText(res));
+            const body = { title, priority: $("priority").value };
+            const due = $("due").value;
+            if (due) body.dueDate = due;
+
+            const res = await api("/todos", { method: "POST", body });
+            if (res.ok) {
+                $("title").value = "";
+                $("due").value = "";
+                $("priority").value = "normal";
+                loadTodos();
+            } else {
+                show(await errorText(res));
+            }
         }
         function setMode(mode) {                        // "login" или "forgot"
             const forgot = mode === "forgot";
