@@ -1,13 +1,14 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using MyApp.Web.Data;
 using System.Net;
 using System.Net.Http.Headers;
 
 namespace MyApp.Web.Services;
 
 public class ResendEmailSender(IHttpClientFactory httpFactory, IConfiguration cfg, ILogger<ResendEmailSender> log)
-    : IEmailSender<IdentityUser>
+    : IEmailSender<ApplicationUser>
 {
-    public Task SendConfirmationLinkAsync(IdentityUser user, string email, string link) =>
+    public Task SendConfirmationLinkAsync(ApplicationUser user, string email, string link) =>
     SendAsync(email, "Подтверждение почты на sshch.online",
         html: $"<p>Здравствуйте!</p>" +
               $"<p>Вы зарегистрировались на сайте sshch.online. Чтобы подтвердить адрес, перейдите по ссылке:</p>" +
@@ -18,14 +19,14 @@ public class ResendEmailSender(IHttpClientFactory httpFactory, IConfiguration cf
               $"Чтобы подтвердить адрес, откройте ссылку:\n{WebUtility.HtmlDecode(link)}\n\n" +
               $"Если вы не регистрировались, проигнорируйте это письмо.");
 
-    public Task SendPasswordResetLinkAsync(IdentityUser user, string email, string link) =>
+    public Task SendPasswordResetLinkAsync(ApplicationUser user, string email, string link) =>
         SendAsync(email, "Сброс пароля на sshch.online",
             html: $"<p>Чтобы задать новый пароль, перейдите по <a href=\"{link}\">ссылке</a>.</p>" +
                   $"<p>Если вы не запрашивали сброс, проигнорируйте это письмо.</p>",
             text: $"Чтобы задать новый пароль, откройте ссылку:\n{WebUtility.HtmlDecode(link)}\n\n" +
                   $"Если вы не запрашивали сброс, проигнорируйте это письмо.");
 
-    public Task SendPasswordResetCodeAsync(IdentityUser user, string email, string code)
+    public Task SendPasswordResetCodeAsync(ApplicationUser user, string email, string code)
     {
         var link = ResetLink.Build(cfg, email, code);
         var htmlLink = WebUtility.HtmlEncode(link);

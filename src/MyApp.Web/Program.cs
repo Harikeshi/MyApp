@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks; // Для проверки /health     
@@ -49,7 +50,7 @@ builder.Services.AddValidation();
 
 /* auth */
 builder.Services.AddAuthorization();
-builder.Services.AddIdentityApiEndpoints<IdentityUser>(o =>
+builder.Services.AddIdentityApiEndpoints<ApplicationUser>(o =>
 {
     o.SignIn.RequireConfirmedEmail = true;
     o.User.RequireUniqueEmail = true;
@@ -59,25 +60,16 @@ builder.Services.AddIdentityApiEndpoints<IdentityUser>(o =>
 builder.Services.Configure<BearerTokenOptions>(IdentityConstants.BearerScheme,
     o => o.BearerTokenExpiration = TimeSpan.FromMinutes(30));
 
-// регистрируем ПОСЛЕ AddIdentityApiEndpoints, чтобы наша реализация победила
-//builder.Services.AddSingleton<IEmailSender<IdentityUser>, LoggingEmailSender>();
-//if (builder.Environment.IsDevelopment())
-//    builder.Services.AddSingleton<IEmailSender<IdentityUser>, LoggingEmailSender>();
-//else
-//    builder.Services.AddSingleton<IEmailSender<IdentityUser>, SendGridEmailSender>();
-//    //builder.Services.AddSingleton<IEmailSender<IdentityUser>, BrevoEmailSender>();
-////builder.Services.AddSingleton<IEmailSender<IdentityUser>, SmtpEmailSender>(); SendGridEmailSender
-
 var emailProvider = builder.Configuration["Email:Provider"]
     ?? (builder.Environment.IsDevelopment() ? "Logging" : "SendGrid");
 
 switch (emailProvider)
 {
     case "Resend":
-        builder.Services.AddSingleton<IEmailSender<IdentityUser>, ResendEmailSender>();
+        builder.Services.AddSingleton<IEmailSender<ApplicationUser>, ResendEmailSender>();
         break;
     default:
-        builder.Services.AddSingleton<IEmailSender<IdentityUser>, LoggingEmailSender>();
+        builder.Services.AddSingleton<IEmailSender<ApplicationUser>, LoggingEmailSender>();
         break;
 }
 
@@ -128,6 +120,16 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
 });
 
+app.Use(async (ctx, next) =>
+{
+    if (ctx.Request.Path.Equals("/register", StringComparison.OrdinalIgnoreCase))
+    {
+        ctx.Response.StatusCode = StatusCodes.Status404NotFound;
+        return;
+    }
+    await next();
+});
+
 app.UseDefaultFiles();      // отдаёт wwwroot/index.html на "/"
 app.UseStaticFiles();
 //app.UseSerilogRequestLogging();
@@ -150,7 +152,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 
 /* endpoints */
-app.MapIdentityApi<IdentityUser>().RequireRateLimiting("auth").AddEndpointFilter(async (context, next) =>
+app.MapIdentityApi<ApplicationUser>().RequireRateLimiting("auth").AddEndpointFilter(async (context, next) =>
 {
     // Здесь вызовите ваш CaptchaFilter или реализуйте логику проверки капчи
     // Например, получите экземпляр фильтра через context.HttpContext.RequestServices
@@ -161,8 +163,8 @@ app.MapIdentityApi<IdentityUser>().RequireRateLimiting("auth").AddEndpointFilter
 
 app.MapPost("/account/forgot", async (
         ForgotRequest req,
-        UserManager<IdentityUser> users,
-        IEmailSender<IdentityUser> sender) =>
+        UserManager<ApplicationUser> users,
+        IEmailSender<ApplicationUser> sender) =>
 {
     var user = await users.FindByEmailAsync(req.Email);
     if (user is null)
@@ -178,10 +180,39 @@ app.MapPost("/account/forgot", async (
 .RequireRateLimiting("auth")
 .AddEndpointFilter<CaptchaFilter>();
 
-app.MapGet("/me", (ClaimsPrincipal user) => new { name = user.Identity?.Name })
-   .RequireAuthorization();
+app.MapPost("/account/register", async (
+        RegisterRequest req,
+        UserManager<ApplicationUser> users,
+        IEmailSender<ApplicationUser> sender,
+        IConfiguration cfg) =>
+{
+    var name = req.DisplayName.Trim();
+    if (name.Length < 2)
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        { ["DisplayName"] = ["Имя должно содержать от 2 до 30 символов"] });
 
-app.MapPost("/logout", async (ClaimsPrincipal principal, UserManager<IdentityUser> users) =>
+    var user = new ApplicationUser { UserName = req.Email, Email = req.Email, DisplayName = name };
+    var result = await users.CreateAsync(user, req.Password);
+    if (!result.Succeeded)
+    {
+        var errors = new Dictionary<string, string[]>();
+        foreach (var e in result.Errors)
+            errors[e.Code] = errors.TryGetValue(e.Code, out var old) ? [.. old, e.Description] : [e.Description];
+        return Results.ValidationProblem(errors);
+    }
+
+    var token = await users.GenerateEmailConfirmationTokenAsync(user);
+    var code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+    var baseUrl = (cfg["App:BaseUrl"] ?? "http://localhost:5247").TrimEnd('/');
+    var link = $"{baseUrl}/confirmEmail?userId={Uri.EscapeDataString(user.Id)}&code={Uri.EscapeDataString(code)}";
+    await sender.SendConfirmationLinkAsync(user, req.Email, HtmlEncoder.Default.Encode(link));
+
+    return Results.Ok();
+})
+.RequireRateLimiting("auth")
+.AddEndpointFilter<CaptchaFilter>();
+//using System.ComponentModel.DataAnnotations; System.Text; System.Text.Encodings.Web; Microsoft.AspNetCore.WebUtilities;
+app.MapPost("/logout", async (ClaimsPrincipal principal, UserManager<ApplicationUser> users) =>
 {
     var user = await users.GetUserAsync(principal);
     if (user is not null)
@@ -189,6 +220,14 @@ app.MapPost("/logout", async (ClaimsPrincipal principal, UserManager<IdentityUse
     return Results.NoContent();
 }).RequireAuthorization();
 
+// Возвращает имя и почту
+app.MapGet("/me", async (ClaimsPrincipal principal, UserManager<ApplicationUser> users) =>
+{
+    var user = await users.GetUserAsync(principal);
+    if (user is null) return Results.Unauthorized();
+    var name = string.IsNullOrWhiteSpace(user.DisplayName) ? user.Email : user.DisplayName;
+    return Results.Ok(new { name, email = user.Email });
+}).RequireAuthorization();
 var todos = app.MapGroup("/todos").RequireAuthorization();
 
 static string UserId(ClaimsPrincipal u) => u.FindFirstValue(ClaimTypes.NameIdentifier)!;

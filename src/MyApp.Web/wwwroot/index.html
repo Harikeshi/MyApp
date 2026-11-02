@@ -113,25 +113,26 @@
 </head>
 <body>
     <header id="topbar" hidden>
-        <span id="userEmail"></span>
+        <span id="userName"></span>
         <button id="logout">Выйти</button>
     </header>
     <h1>Мои задачи</h1>
     <div id="msg" class="msg" role="status"></div>
 
     <section id="auth">
+        <h2 id="authTitle">Вход</h2>
+        <label id="nameRow" hidden>Имя пользователя <input id="displayName" type="text" maxlength="30" autocomplete="nickname"></label>
         <label>Почта <input id="email" type="email" autocomplete="username"></label>
         <label id="pwdRow">Пароль <input id="password" type="password" autocomplete="current-password"></label>
         <div id="captcha"></div>
-        <div class="row" id="authButtons">
-            <button id="login">Войти</button>
-            <button id="register">Зарегистрироваться</button>
-        </div>
-        <div class="row" id="forgotButtons" hidden>
-            <button id="sendReset">Отправить ссылку</button>
-            <button id="backToLogin">Назад</button>
-        </div>
-        <p><a href="#" id="forgotLink">Забыли пароль?</a></p>
+        <div class="row" id="loginButtons"><button id="login">Войти</button></div>
+        <div class="row" id="registerButtons" hidden><button id="register">Зарегистрироваться</button></div>
+        <div class="row" id="forgotButtons" hidden><button id="sendReset">Отправить ссылку</button></div>
+        <p>
+            <a href="#" id="toRegister">Создать аккаунт</a>
+            <a href="#" id="forgotLink">Забыли пароль?</a>
+            <a href="#" id="toLogin" hidden>Назад ко входу</a>
+        </p>
     </section>
 
     <section id="reset" hidden>
@@ -200,6 +201,8 @@
             try {
                 const data = await res.json();
                 if (data.errors && data.errors.InvalidToken) return "Ссылка недействительна или устарела: запросите сброс заново";
+                if (data.errors && (data.errors.DuplicateEmail/*  || data.errors.DuplicateUserName */))
+                    return "Эта почта уже зарегистрирована";
                 if (data.errors) return Object.values(data.errors).flat().join(" ");
                 if (data.error === "captcha_required") return "Пройдите проверку captcha";
                 if (data.error === "captcha_failed") return "Проверка captcha не пройдена, попробуйте ещё раз";
@@ -212,11 +215,7 @@
 
         const creds = () => ({ email: $("email").value.trim(), password: $("password").value });
 
-        async function register() {
-            const res = await api("/register", { method: "POST", body: creds(), captcha: true });
-            if (res.ok) show("Готово. Проверьте почту, подтвердите адрес и затем войдите.", true);
-            else show(await errorText(res));
-        }
+     
 
         async function login() {
             const res = await api("/login", { method: "POST", body: creds(), captcha: true });
@@ -228,18 +227,57 @@
             await showApp();
         }
 
-        function logout(message = "") {
-            token = null;
-            sessionStorage.removeItem("token");
-            $("app").hidden = true;
-            $("auth").hidden = false;
-            show(message);
+        function setMode(mode) {                      // "login" | "register" | "forgot"
+            const titles = { login: "Вход", register: "Регистрация", forgot: "Сброс пароля" };
+            $("authTitle").textContent = titles[mode];
+            $("nameRow").hidden = mode !== "register";
+            $("pwdRow").hidden = mode === "forgot";
+            $("password").autocomplete = mode === "register" ? "new-password" : "current-password";
+            $("loginButtons").hidden = mode !== "login";
+            $("registerButtons").hidden = mode !== "register";
+            $("forgotButtons").hidden = mode !== "forgot";
+            $("toRegister").hidden = mode !== "login";
+            $("forgotLink").hidden = mode !== "login";
+            $("toLogin").hidden = mode === "login";
+            show("");
+        }
+
+        async function register() {
+            const displayName = $("displayName").value.trim();
+            if (displayName.length < 2) return show("Введите имя пользователя (от 2 до 30 символов)");
+            const res = await api("/account/register", {
+                method: "POST",
+                body: { email: $("email").value.trim(), password: $("password").value, displayName },
+                captcha: true
+            });
+            if (!res.ok) return show(await errorText(res));
+            setMode("login");
+            show("Готово. Проверьте почту, подтвердите адрес и затем войдите.", true);
+        }
+
+        async function loadUser() {
+            const res = await api("/me");
+            if (!res.ok) return;
+            const me = await res.json();
+            $("userName").textContent = me.name;
+            $("userName").title = me.email;
         }
 
         async function showApp() {
             $("auth").hidden = true;
             $("app").hidden = false;
-            await loadTodos();
+            $("topbar").hidden = false;
+            await Promise.all([loadUser(), loadTodos()]);
+        }
+
+        function logout(message = "") {
+            token = null;
+            sessionStorage.removeItem("token");
+            $("app").hidden = true;
+            $("topbar").hidden = true;
+            $("userName").textContent = "";
+            $("auth").hidden = false;
+            show(message);
         }
 
         const PRIORITY_LABEL = { low: "низкий", normal: "", high: "высокий" };
@@ -319,15 +357,7 @@
                 show(await errorText(res));
             }
         }
-        function setMode(mode) {                        // "login" или "forgot"
-            const forgot = mode === "forgot";
-            $("pwdRow").hidden = forgot;
-            $("authButtons").hidden = forgot;
-            $("forgotButtons").hidden = !forgot;
-            $("forgotLink").hidden = forgot;
-            show("");
-        }
-
+       
         async function sendReset() {
             const email = $("email").value.trim();
             if (!email) return show("Введите почту");
@@ -374,8 +404,9 @@
             show("Пароль изменён. Войдите с новым паролем.", true);
         }
 
+        $("toRegister").onclick = e => { e.preventDefault(); setMode("register"); };
         $("forgotLink").onclick = e => { e.preventDefault(); setMode("forgot"); };
-        $("backToLogin").onclick = () => setMode("login");
+        $("toLogin").onclick = e => { e.preventDefault(); setMode("login"); };
         $("sendReset").onclick = sendReset;
         $("doReset").onclick = doReset;
         $("login").onclick = login;

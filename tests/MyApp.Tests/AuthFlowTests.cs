@@ -95,8 +95,25 @@ public class AuthFlowTests(ApiFactory factory) : IClassFixture<ApiFactory>
         Assert.Equal("https://example.test/#reset=1&email=a%2Bb%40example.com&code=abc%26def", link);
     }
 
+    /*  /ME */
     [Fact]
-    public async Task Me_returns_the_current_user_name()
+    public async Task Register_without_display_name_returns_400()
+    {
+        var response = await factory.CreateClient().PostAsJsonAsync("/account/register",
+            new { email = $"{Guid.NewGuid():N}@example.com", password = ApiFactory.DefaultPassword });
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Old_register_endpoint_is_closed()
+    {
+        var response = await factory.CreateClient().PostAsJsonAsync("/register",
+            new { email = "a@example.com", password = ApiFactory.DefaultPassword });
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Me_returns_display_name_and_email()
     {
         var email = await factory.CreateConfirmedUserAsync();
         var tokens = await factory.LoginAsync(email);
@@ -105,15 +122,9 @@ public class AuthFlowTests(ApiFactory factory) : IClassFixture<ApiFactory>
 
         var me = await client.GetFromJsonAsync<MeResponse>("/me");
 
-        Assert.Equal(email, me!.Name);
+        Assert.Equal("Test User", me!.Name);
+        Assert.Equal(email, me.Email);
     }
 
-    [Fact]
-    public async Task Me_without_token_returns_401()
-    {
-        var response = await factory.CreateClient().GetAsync("/me");
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
-    }
-
-    private record MeResponse(string Name);
+    private record MeResponse(string Name, string Email);
 }

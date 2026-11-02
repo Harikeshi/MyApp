@@ -6,7 +6,7 @@ using MyApp.Web.Models;
 
 namespace MyApp.Web.Data;
 
-public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbContext<IdentityUser>(options)
+public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbContext<ApplicationUser>(options)
 {
     public DbSet<TodoItem> Todos => Set<TodoItem>();
 
@@ -16,7 +16,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
 
         builder.Entity<TodoItem>(e =>
         {
-            e.HasOne<IdentityUser>().WithMany()
+            e.HasOne<ApplicationUser>().WithMany()
                 .HasForeignKey(t => t.UserId)
                 .OnDelete(DeleteBehavior.Cascade);   // удалили пользователя, удалились его задачи
             e.HasIndex(t => t.UserId);

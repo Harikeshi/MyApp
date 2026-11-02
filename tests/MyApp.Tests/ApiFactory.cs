@@ -26,7 +26,7 @@ public class ApiFactory : WebApplicationFactory<Program>
             _conn.Open();
             services.AddDbContext<AppDbContext>(o => o.UseSqlite(_conn));
             services.AddSingleton<CapturingEmailSender>();
-            services.AddSingleton<IEmailSender<IdentityUser>>(sp => sp.GetRequiredService<CapturingEmailSender>());
+            services.AddSingleton<IEmailSender<ApplicationUser>>(sp => sp.GetRequiredService<CapturingEmailSender>());
         });
     }
 
@@ -39,11 +39,11 @@ public class ApiFactory : WebApplicationFactory<Program>
         var email = $"{Guid.NewGuid():N}@example.com";
         var client = CreateClient();
 
-        (await client.PostAsJsonAsync("/register", new { email, password = DefaultPassword }))
-            .EnsureSuccessStatusCode();
+        (await client.PostAsJsonAsync("/account/register",
+             new { email, password = DefaultPassword, displayName = "Test User" })).EnsureSuccessStatusCode();
 
         using var scope = Services.CreateScope();
-        var users = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var user = (await users.FindByEmailAsync(email))!;
         var token = await users.GenerateEmailConfirmationTokenAsync(user);
         Assert.True((await users.ConfirmEmailAsync(user, token)).Succeeded);
@@ -73,31 +73,6 @@ public class ApiFactory : WebApplicationFactory<Program>
         return host;
     } 
 
-    //// Регистрирует пользователя, подтверждает почту, входит и возвращает клиента с токеном
-    //public async Task<HttpClient> CreateAuthenticatedClientAsync()
-    //{
-    //    var email = $"{Guid.NewGuid():N}@example.com";
-    //    const string password = "Test123!xyz";
-    //    var client = CreateClient();
-
-    //    (await client.PostAsJsonAsync("/register", new { email, password })).EnsureSuccessStatusCode();
-
-    //    using (var scope = Services.CreateScope())
-    //    {
-    //        var users = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
-    //        var user = (await users.FindByEmailAsync(email))!;
-    //        var token = await users.GenerateEmailConfirmationTokenAsync(user);
-    //        (await users.ConfirmEmailAsync(user, token)).Succeeded.ShouldBeTrue();
-    //    }
-
-    //    var login = await client.PostAsJsonAsync("/login", new { email, password });
-    //    login.EnsureSuccessStatusCode();
-    //    var tokens = await login.Content.ReadFromJsonAsync<LoginResponse>();
-    //    client.DefaultRequestHeaders.Authorization =
-    //        new AuthenticationHeaderValue("Bearer", tokens!.AccessToken);
-    //    return client;
-    //}
-
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
@@ -106,14 +81,14 @@ public class ApiFactory : WebApplicationFactory<Program>
 
     public record LoginTokens(string AccessToken, string RefreshToken);
 
-    public class CapturingEmailSender : IEmailSender<IdentityUser>
+    public class CapturingEmailSender : IEmailSender<ApplicationUser>
     {
         public System.Collections.Concurrent.ConcurrentDictionary<string, string> ResetCodes { get; } = new();
 
-        public Task SendConfirmationLinkAsync(IdentityUser user, string email, string link) => Task.CompletedTask;
-        public Task SendPasswordResetLinkAsync(IdentityUser user, string email, string link) => Task.CompletedTask;
+        public Task SendConfirmationLinkAsync(ApplicationUser user, string email, string link) => Task.CompletedTask;
+        public Task SendPasswordResetLinkAsync(ApplicationUser user, string email, string link) => Task.CompletedTask;
 
-        public Task SendPasswordResetCodeAsync(IdentityUser user, string email, string code)
+        public Task SendPasswordResetCodeAsync(ApplicationUser user, string email, string code)
         {
             ResetCodes[email] = System.Net.WebUtility.HtmlDecode(code);   // код приходит закодированным для HTML
             return Task.CompletedTask;
