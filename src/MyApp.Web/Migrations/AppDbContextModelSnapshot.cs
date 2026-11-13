@@ -3,9 +3,8 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using MyApp.Web.Data;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-
+using MyApp.Infrastructure.Persistence;
 #nullable disable
 
 namespace MyApp.Web.Migrations

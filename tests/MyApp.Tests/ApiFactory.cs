@@ -8,7 +8,8 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using MyApp.Web.Data;
+using MyApp.Infrastructure.Identity;
+using MyApp.Infrastructure.Persistence; 
 
 namespace MyApp.Tests;
 

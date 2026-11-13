@@ -1,6 +1,10 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using MyApp.Domain.Todos;            // для Priority
 
 namespace MyApp.Web.Models;
+
+// Модели ЗАПРОСОВ остаются в Web: проверка Minimal API находит их рядом с эндпоинтами.
+// Модель ответа (TodoResponse) теперь живёт в MyApp.Application.Todos.
 
 public record CreateTodoRequest
 {
@@ -20,5 +24,3 @@ public record UpdateTodoRequest
     [EnumDataType(typeof(Priority))]
     public Priority Priority { get; init; } = Priority.Normal;
 }
-
-public record TodoResponse(int Id, string Title, bool IsDone, DateTime CreatedAt, DateOnly? DueDate, Priority Priority);

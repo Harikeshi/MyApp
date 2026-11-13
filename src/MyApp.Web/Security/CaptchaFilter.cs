@@ -1,18 +1,18 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 
-namespace MyApp.Web.Services;
+namespace MyApp.Web.Security;
 
-public class CaptchaFilter(IHttpClientFactory httpFactory, IConfiguration cfg, ILogger<CaptchaFilter> log, IWebHostEnvironment env) : IEndpointFilter
+public class CaptchaFilter(IHttpClientFactory httpFactory, IConfiguration cfg, ILogger<CaptchaFilter> log) : IEndpointFilter
 {
-    private static readonly string[] Protected = ["/register", "/login", "/forgotPassword", "/resendConfirmationEmail"];
+    // Адреса, где captcha обязательна (встроенные эндпоинты Identity и наши /account/...).
+    private static readonly string[] Protected =
+    [
+        "/login", "/forgotPassword", "/resendConfirmationEmail",
+        "/register", "/account/register", "/account/forgot"
+    ];
 
     public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext ctx, EndpointFilterDelegate next)
     {
-        if (env.IsDevelopment())
-        {
-            return await next(ctx);
-        }
-
         var http = ctx.HttpContext;
         var path = http.Request.Path.Value ?? "";
         if (!Protected.Any(p => path.EndsWith(p, StringComparison.OrdinalIgnoreCase)))
@@ -20,7 +20,7 @@ public class CaptchaFilter(IHttpClientFactory httpFactory, IConfiguration cfg, I
 
         var secret = cfg["Turnstile:SecretKey"];
         if (string.IsNullOrEmpty(secret))
-            return await next(ctx);                       // captcha не настроена
+            return await next(ctx);                          // captcha не настроена (разработка, тесты)
 
         var token = http.Request.Headers["X-Captcha-Token"].ToString();
         if (string.IsNullOrWhiteSpace(token))
@@ -30,21 +30,24 @@ public class CaptchaFilter(IHttpClientFactory httpFactory, IConfiguration cfg, I
         var ip = http.Connection.RemoteIpAddress?.ToString();
         if (ip is not null) form["remoteip"] = ip;
 
+        var ct = http.RequestAborted;
         bool success;
         var codes = "нет";
-        var ct = http.RequestAborted;
+
+        // В try только обращение к Cloudflare: next() вызывается ПОСЛЕ, иначе ошибки самого эндпоинта
+        // ошибочно считались бы сбоем captcha.
         try
         {
-            var client = httpFactory.CreateClient();            
+            var client = httpFactory.CreateClient();
             using var resp = await client.PostAsync(
                 "https://challenges.cloudflare.com/turnstile/v0/siteverify",
                 new FormUrlEncodedContent(form), ct);
             using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(ct));
+
             success = doc.RootElement.TryGetProperty("success", out var ok) && ok.GetBoolean();
             if (!success && doc.RootElement.TryGetProperty("error-codes", out var c))
                 codes = c.ToString();
         }
-        // todo: catch (HttpRequestException ex) when (ex.StatusCode is HttpStatusCode.BadGateway or HttpStatusCode.ServiceUnavailable or HttpStatusCode.GatewayTimeout)
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
             return Results.StatusCode(StatusCodes.Status499ClientClosedRequest);

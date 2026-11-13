@@ -3,6 +3,11 @@
 ##
 ## Get latest from `dotnet new gitignore`
 
+# Front 
+src/MyApp.Web/wwwroot/app/
+client/node_modules/
+
+# Deploy & Publish
 deploy.ps1
 publish.ps1
 out

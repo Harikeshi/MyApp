@@ -1,6 +1,6 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Http.Json;
-using MyApp.Web.Models;
+using MyApp.Application.Todos;
 
 namespace MyApp.Tests;
 
@@ -61,5 +61,19 @@ public class TodoApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
 
         var aliceList = await alice.GetFromJsonAsync<List<TodoResponse>>("/todos", TestJson.Options);
         Assert.Single(aliceList!);
+    }
+    
+    [Fact]
+    public async Task Stats_count_open_done_and_high_priority()
+    {
+        var client = await factory.CreateAuthenticatedClientAsync();
+        await client.PostAsJsonAsync("/todos", new { title = "a", priority = "high" });
+        await client.PostAsJsonAsync("/todos", new { title = "b" });
+
+        var stats = await client.GetFromJsonAsync<TodoStatsResponse>("/todos/stats", TestJson.Options);
+
+        Assert.Equal(2, stats!.Total);
+        Assert.Equal(2, stats.Open);
+        Assert.Equal(1, stats.HighPriorityOpen);
     }
 }

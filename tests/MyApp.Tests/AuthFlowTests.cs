@@ -2,7 +2,7 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Microsoft.Extensions.Configuration;
-using MyApp.Web.Services;
+using MyApp.Infrastructure.Email;
 
 namespace MyApp.Tests;
 

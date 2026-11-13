@@ -1,4 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
+
+namespace MyApp.Web.Models;
 
 public record RegisterRequest
 {
@@ -14,3 +16,5 @@ public record RegisterRequest
         ErrorMessage = "В имени допустимы буквы, цифры, пробел и символы . _ -")]
     public string DisplayName { get; init; } = "";
 }
+
+public record ForgotRequest(string Email);

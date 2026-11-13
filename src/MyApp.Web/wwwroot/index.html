@@ -5,110 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Мои задачи</title>
     <style>
-        select {
-            font: inherit;
-            padding: .5rem;
-        }
-
-        .due {
-            color: #555;
-            font-size: .9em;
-            white-space: nowrap;
-        }
-
-            .due.overdue {
-                color: #b00020;
-                font-weight: 600;
-            }
-
-        .prio {
-            font-size: .85em;
-        }
-
-        li.high .prio {
-            color: #b00020;
-            font-weight: 600;
-        }
-
-        li.low .prio {
-            color: #777;
-        }
-
-        body {
-            font-family: system-ui, sans-serif;
-            max-width: 520px;
-            margin: 2rem auto;
-            padding: 0 1rem;
-        }
-
-        input, button {
-            font: inherit;
-            padding: .5rem;
-        }
-
-            input[type=text], input[type=email], input[type=password] {
-                width: 100%;
-                box-sizing: border-box;
-                margin: .25rem 0 .75rem;
-            }
-
-        .row {
-            display: flex;
-            gap: .5rem;
-        }
-
-        .msg {
-            margin: .75rem 0;
-            min-height: 1.5em;
-        }
-
-        .err {
-            color: #b00020;
-        }
-
-        .ok {
-            color: #1b6e2d;
-        }
-
-        ul {
-            padding: 0;
-            list-style: none;
-        }
-
-        li {
-            display: flex;
-            align-items: center;
-            gap: .5rem;
-            margin: .4rem 0;
-        }
-
-            li span {
-                flex: 1;
-            }
-
-            li.done span {
-                text-decoration: line-through;
-                color: #777;
-            }
-
-        [hidden] {
-            display: none !important;
-        }
-        #topbar {
-            display: flex;
-            justify-content: flex-end;
-            align-items: center;
-            gap: .75rem;
-            margin-bottom: 1rem;
-        }
-
-        #userEmail {
-            min-width: 0;
-            color: #555;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
+        <!-->
     </style>
 </head>
 <body>
@@ -142,19 +39,30 @@
         <button id="doReset">Сохранить пароль</button>
     </section>
     <section id="app" hidden>
-        <div class="row">
-            <input id="title" type="text" maxlength="200" placeholder="Новая задача">
+        <nav id="tabs">
+            <button data-tab="todos" class="active">Задачи</button>
+            <button data-tab="stats">Статистика</button>
+        </nav>
+
+        <div id="tab-todos">
+            <!-- здесь прежнее содержимое: поля новой задачи и <ul id="list"> -->
+            <div class="row">
+                <input id="title" type="text" maxlength="200" placeholder="Новая задача">
+            </div>
+            <div class="row">
+                <input id="due" type="date" title="Срок">
+                <select id="priority" title="Приоритет">
+                    <option value="low">Низкий</option>
+                    <option value="normal" selected>Обычный</option>
+                    <option value="high">Высокий</option>
+                </select>
+                <button id="add">Добавить</button>
+            </div>
+            <ul id="list"></ul>
         </div>
-        <div class="row">
-            <input id="due" type="date" title="Срок">
-            <select id="priority" title="Приоритет">
-                <option value="low">Низкий</option>
-                <option value="normal" selected>Обычный</option>
-                <option value="high">Высокий</option>
-            </select>
-            <button id="add">Добавить</button>
+        <div id="tab-stats" hidden>
+            <div id="react-root"></div>
         </div>
-        <ul id="list"></ul>
     </section>
 
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstile" async defer></script>
@@ -418,5 +326,7 @@
         };
         if (token && !resetParams) showApp();
     </script>
+    <link rel="stylesheet" href="/app/assets/app.css">
+    <script type="module" src="/app/assets/app.js"></script>
 </body>
 </html>
