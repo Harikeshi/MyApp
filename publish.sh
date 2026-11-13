@@ -26,6 +26,7 @@ fail()  { red "$*"; exit 1; }
 command -v dotnet >/dev/null 2>&1 || fail "Не найден dotnet: установите .NET SDK"
 command -v ssh    >/dev/null 2>&1 || fail "Не найден ssh"
 command -v curl   >/dev/null 2>&1 || fail "Не найден curl"
+command -v npm >/dev/null 2>&1 || fail "Не найден npm: установите Node.js"
 
 if [ "${SKIP_TESTS:-0}" != "1" ]; then
     echo "==> Тесты"
@@ -33,6 +34,9 @@ if [ "${SKIP_TESTS:-0}" != "1" ]; then
 else
     echo "==> Тесты пропущены (SKIP_TESTS=1)"
 fi
+
+echo "==> Сборка клиента"
+( cd client && npm ci && npm run build ) || fail "Сборка клиента не удалась"
 
 echo "==> Публикация"
 rm -rf out
@@ -56,3 +60,7 @@ echo "==> Проверка сайта"
 body=$(curl -fsS --max-time 15 "$SITE_URL/health/ready") \
     || fail "Сайт не отвечает на $SITE_URL/health/ready"
 green "Сайт отвечает: $body"
+
+curl -fsS --max-time 15 -o /dev/null "$SITE_URL/app/assets/app.js" \
+    || fail "Клиент не отдаётся: $SITE_URL/app/assets/app.js"
+green "Клиент на месте"

@@ -1,0 +1,15 @@
+#react-root .st-muted { color: #667085; }
+#react-root .st-error { color: #c62828; }
+#react-root .st h3 { margin: 24px 0 8px; font-size: 1rem; }
+#react-root .st-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; }
+#react-root .st-card { border: 1px solid #e3e6eb; border-radius: 8px; padding: 12px 14px; display: grid; }
+#react-root .st-card b { font-size: 1.6rem; }
+#react-root .st-card span { color: #667085; font-size: .85rem; }
+#react-root .st-card.warn b { color: #c62828; }
+#react-root .st-bar { height: 8px; background: #e9ecf1; border-radius: 4px; overflow: hidden; flex: 1; }
+#react-root .st-bar > div { height: 100%; background: #2457d6; }
+#react-root .st-bar > div.p-high { background: #c62828; }
+#react-root .st-bar > div.p-low { background: #98a2b3; }
+#react-root .st-row { display: flex; align-items: center; gap: 12px; margin: 6px 0; }
+#react-root .st-row > span:first-child { width: 80px; }
+#react-root .st-row > span:last-child { width: 28px; text-align: right; }
