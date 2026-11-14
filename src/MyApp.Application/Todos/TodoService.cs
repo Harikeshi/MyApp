@@ -1,24 +1,17 @@
-using Microsoft.EntityFrameworkCore;
 using MyApp.Application.Abstractions;
+using MyApp.Application.Common;
 using MyApp.Domain.Todos;
 
 namespace MyApp.Application.Todos;
 
-public class TodoService(IAppDbContext db, ICurrentUser user, TimeProvider clock)
+public class TodoService(ITodoRepository todos, IUnitOfWork unitOfWork, ICurrentUser user, TimeProvider clock)
 {
-    public async Task<List<TodoResponse>> ListAsync(CancellationToken ct)
+    /// <param name="page">Номер страницы с 1 (по умолчанию 1).</param>
+    /// <param name="pageSize">Размер страницы (по умолчанию 20, не больше 100); неверные значения приводятся к допустимым.</param>
+    public async Task<PagedResult<TodoResponse>> ListAsync(int? page, int? pageSize, CancellationToken ct)
     {
-        var uid = user.Id;
-
-        return await db.Todos
-            .Where(t => t.UserId == uid)
-            .OrderBy(t => t.IsDone)
-            .ThenByDescending(t => t.Priority)
-            .ThenBy(t => t.DueDate == null)
-            .ThenBy(t => t.DueDate)
-            .ThenBy(t => t.Id)
-            .Select(t => new TodoResponse(t.Id, t.Title, t.IsDone, t.CreatedAt, t.DueDate, t.Priority))
-            .ToListAsync(ct);
+        var result = await todos.ListAsync(user.Id, PageRequest.Of(page, pageSize), ct);
+        return result.Map(ToResponse);
     }
 
     public async Task<TodoResponse> CreateAsync(
@@ -26,8 +19,8 @@ public class TodoService(IAppDbContext db, ICurrentUser user, TimeProvider clock
     {
         var todo = new TodoItem(user.Id, title, dueDate, priority, clock.GetUtcNow().UtcDateTime);
 
-        db.Todos.Add(todo);
-        await db.SaveChangesAsync(ct);
+        todos.Add(todo);
+        await unitOfWork.SaveChangesAsync(ct);
 
         return ToResponse(todo);
     }
@@ -35,46 +28,31 @@ public class TodoService(IAppDbContext db, ICurrentUser user, TimeProvider clock
     public async Task<bool> UpdateAsync(
         int id, string title, bool isDone, DateOnly? dueDate, Priority priority, CancellationToken ct)
     {
-        var uid = user.Id;
-        var todo = await db.Todos.FirstOrDefaultAsync(t => t.Id == id && t.UserId == uid, ct);
+        var todo = await todos.FindAsync(id, user.Id, ct);
         if (todo is null) return false;
 
         todo.Update(title, isDone, dueDate, priority);
-        await db.SaveChangesAsync(ct);
+        await unitOfWork.SaveChangesAsync(ct);
         return true;
     }
 
     public async Task<bool> DeleteAsync(int id, CancellationToken ct)
     {
-        var uid = user.Id;
-        var todo = await db.Todos.FirstOrDefaultAsync(t => t.Id == id && t.UserId == uid, ct);
+        var todo = await todos.FindAsync(id, user.Id, ct);
         if (todo is null) return false;
 
-        db.Todos.Remove(todo);
-        await db.SaveChangesAsync(ct);
+        todos.Remove(todo);
+        await unitOfWork.SaveChangesAsync(ct);
         return true;
     }
 
+    /// <param name="today">
+    /// Локальная дата клиента (чтобы «просрочено» не зависело от часового пояса сервера);
+    /// без неё берётся текущая дата UTC.
+    /// </param>
+    public Task<TodoStatsResponse> GetStatsAsync(DateOnly? today, CancellationToken ct) =>
+        todos.GetStatsAsync(user.Id, today ?? DateOnly.FromDateTime(clock.GetUtcNow().UtcDateTime), ct);
+
     private static TodoResponse ToResponse(TodoItem t) =>
         new(t.Id, t.Title, t.IsDone, t.CreatedAt, t.DueDate, t.Priority);
-    
-    // todo: Для теста вкладки
-
-    public async Task<TodoStatsResponse> GetStatsAsync(CancellationToken ct)
-    {
-        var uid = user.Id;
-        var today = DateOnly.FromDateTime(clock.GetUtcNow().UtcDateTime);
-
-        return await db.Todos
-            .Where(t => t.UserId == uid)
-            .GroupBy(_ => 1)
-            .Select(g => new TodoStatsResponse(
-                g.Count(),
-                g.Count(t => t.IsDone),
-                g.Count(t => !t.IsDone),
-                g.Count(t => !t.IsDone && t.DueDate != null && t.DueDate < today),
-                g.Count(t => !t.IsDone && t.Priority == Priority.High)))
-            .FirstOrDefaultAsync(ct) ?? new TodoStatsResponse(0, 0, 0, 0, 0);
-    }
 }
-public record TodoStatsResponse(int Total, int Done, int Open, int Overdue, int HighPriorityOpen);

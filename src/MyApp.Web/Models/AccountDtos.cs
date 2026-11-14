@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using MyApp.Application.Accounts;
 
 namespace MyApp.Web.Models;
 
@@ -11,7 +12,8 @@ public record RegisterRequest
     public string Password { get; init; } = "";
 
     [Required(ErrorMessage = "Введите имя пользователя")]
-    [StringLength(30, MinimumLength = 2, ErrorMessage = "Имя должно содержать от 2 до 30 символов")]
+    [StringLength(DisplayNameRules.MaxLength, MinimumLength = DisplayNameRules.MinLength,
+        ErrorMessage = DisplayNameRules.ErrorMessage)]
     [RegularExpression(@"^[\p{L}\p{N}][\p{L}\p{N} ._-]*$",
         ErrorMessage = "В имени допустимы буквы, цифры, пробел и символы . _ -")]
     public string DisplayName { get; init; } = "";

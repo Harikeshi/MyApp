@@ -1,5 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using MyApp.Domain.Todos;            // для Priority
+using MyApp.Domain.Todos;            // Priority, TodoItem.MaxTitleLength
 
 namespace MyApp.Web.Models;
 
@@ -8,7 +8,7 @@ namespace MyApp.Web.Models;
 
 public record CreateTodoRequest
 {
-    [Required, StringLength(200, MinimumLength = 1)]
+    [Required, StringLength(TodoItem.MaxTitleLength, MinimumLength = 1)]
     public string Title { get; init; } = "";
     public DateOnly? DueDate { get; init; }
     [EnumDataType(typeof(Priority))]
@@ -17,7 +17,7 @@ public record CreateTodoRequest
 
 public record UpdateTodoRequest
 {
-    [Required, StringLength(200, MinimumLength = 1)]
+    [Required, StringLength(TodoItem.MaxTitleLength, MinimumLength = 1)]
     public string Title { get; init; } = "";
     public bool IsDone { get; init; }
     public DateOnly? DueDate { get; init; }

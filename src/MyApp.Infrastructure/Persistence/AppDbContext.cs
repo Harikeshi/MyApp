@@ -6,7 +6,8 @@ using MyApp.Infrastructure.Identity;
 
 namespace MyApp.Infrastructure.Persistence;
 
-public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbContext<ApplicationUser>(options), IAppDbContext
+public class AppDbContext(DbContextOptions<AppDbContext> options)
+    : IdentityDbContext<ApplicationUser>(options), IUnitOfWork
 {
     public DbSet<TodoItem> Todos => Set<TodoItem>();
 

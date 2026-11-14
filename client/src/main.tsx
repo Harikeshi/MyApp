@@ -1,7 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import Stats from "./Stats";
-import "./styles.css";
+import Stats from "./features/stats/Stats";
 
 createRoot(document.getElementById("react-root")!).render(
   <StrictMode>

@@ -12,17 +12,14 @@ public static class AccountEndpoints
         // состояние для страницы (открыта ли регистрация)
         app.MapGet("/config", (RegistrationGate gate) => new { registrationEnabled = gate.IsOpen });
 
-        app.MapIdentityApi<ApplicationUser>().RequireRateLimiting("auth").AddEndpointFilter(async (context, next) =>
-        {
-            // Здесь вызовите ваш CaptchaFilter или реализуйте логику проверки капчи
-            // Например, получите экземпляр фильтра через context.HttpContext.RequestServices
-            // и вызовите его метод InvokeAsync
-            var captchaFilter = context.HttpContext.RequestServices.GetRequiredService<CaptchaFilter>();
-            return await captchaFilter.InvokeAsync(context, next);
-        });
-        
-        // // встроенные эндпоинты Identity: /login, /refresh, /confirmEmail, /resetPassword, ...
-        // app.MapIdentityApi<ApplicationUser>().RequireRateLimiting("auth").AddEndpointFilter<CaptchaFilter>();
+        // встроенные эндпоинты Identity: /login, /refresh, /confirmEmail, /resetPassword, ...
+        // Captcha проверяет тот же CaptchaFilter (он сам решает по адресу, нужна ли проверка).
+        app.MapIdentityApi<ApplicationUser>()
+            .RequireRateLimiting("auth")
+            .AddEndpointFilter((context, next) =>
+                context.HttpContext.RequestServices
+                    .GetRequiredService<CaptchaFilter>()
+                    .InvokeAsync(context, next));
 
         // регистрация с именем пользователя
         app.MapPost("/account/register", async (RegisterRequest req, IAccountService accounts, CancellationToken ct) =>

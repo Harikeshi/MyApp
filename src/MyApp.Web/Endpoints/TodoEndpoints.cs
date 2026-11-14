@@ -9,8 +9,9 @@ public static class TodoEndpoints
     {
         var todos = app.MapGroup("/todos").RequireAuthorization();
 
-        todos.MapGet("/", (TodoService service, CancellationToken ct) =>
-            service.ListAsync(ct));
+        // GET /todos?page=1&pageSize=20 -> { items, page, pageSize, totalCount, totalPages }
+        todos.MapGet("/", (int? page, int? pageSize, TodoService service, CancellationToken ct) =>
+            service.ListAsync(page, pageSize, ct));
 
         todos.MapPost("/", async (CreateTodoRequest req, TodoService service, CancellationToken ct) =>
         {
@@ -28,8 +29,10 @@ public static class TodoEndpoints
                 ? Results.NoContent()
                 : Results.NotFound());
 
-        todos.MapGet("/stats", (TodoService service, CancellationToken ct) => service.GetStatsAsync(ct));
-        
+        // today — локальная дата клиента (необязательно); по ней считается «просрочено»
+        todos.MapGet("/stats", (DateOnly? today, TodoService service, CancellationToken ct) =>
+            service.GetStatsAsync(today, ct));
+
         return app;
     }
 }

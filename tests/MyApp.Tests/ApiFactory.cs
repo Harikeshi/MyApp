@@ -96,8 +96,3 @@ public class ApiFactory : WebApplicationFactory<Program>
         }
     }
 }
-
-file static class Extensions
-{
-    public static void ShouldBeTrue(this bool value) => Assert.True(value);
-}

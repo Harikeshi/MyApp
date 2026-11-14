@@ -15,6 +15,10 @@ public static class WebApplicationExtensions
             ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
         });
 
+        // необработанные исключения и пустые ответы 4xx/5xx превращаются в ProblemDetails (JSON)
+        app.UseExceptionHandler();
+        app.UseStatusCodePages();
+
         // старый встроенный /register закрыт: регистрация идёт через /account/register (с именем)
         app.Use(async (ctx, next) =>
         {

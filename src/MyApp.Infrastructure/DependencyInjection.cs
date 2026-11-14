@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using MyApp.Application.Abstractions;
 using MyApp.Application.Accounts;
+using MyApp.Infrastructure.Captcha;
 using MyApp.Infrastructure.Email;
 using MyApp.Infrastructure.Identity;
 using MyApp.Infrastructure.Persistence;
@@ -23,7 +24,12 @@ public static class DependencyInjection
             services.AddDbContext<AppDbContext>(o =>
                 o.UseNpgsql(cfg.GetConnectionString("DefaultConnection")));
         }
-        services.AddScoped<IAppDbContext>(sp => sp.GetRequiredService<AppDbContext>());
+        services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<AppDbContext>());
+        services.AddScoped<ITodoRepository, TodoRepository>();
+
+        // ---------- captcha ----------
+        services.AddOptions<TurnstileOptions>().BindConfiguration(TurnstileOptions.SectionName);
+        services.AddSingleton<ICaptchaVerifier, TurnstileCaptchaVerifier>();
 
         // ---------- Identity ----------
         services.AddIdentityApiEndpoints<ApplicationUser>(o =>

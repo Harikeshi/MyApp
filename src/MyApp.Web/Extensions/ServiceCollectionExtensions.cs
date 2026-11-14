@@ -26,6 +26,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddOpenApi();
         services.AddAuthorization();
+        services.AddProblemDetails();          // единый формат ошибок (RFC 9457) для необработанных исключений и пустых 4xx/5xx
 
         // текущий пользователь для слоя Application
         services.AddHttpContextAccessor();
@@ -42,8 +43,7 @@ public static class ServiceCollectionExtensions
         if (!string.IsNullOrEmpty(keysPath))
             dataProtection.PersistKeysToFileSystem(new DirectoryInfo(keysPath));
 
-        // защита эндпоинтов авторизации
-        services.AddHttpClient();
+        // защита эндпоинтов авторизации (сама проверка captcha живёт в Infrastructure: ICaptchaVerifier)
         services.AddScoped<CaptchaFilter>();
         services.AddSingleton<RegistrationGate>();
         services.AddAppRateLimiting();
