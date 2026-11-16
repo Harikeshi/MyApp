@@ -1,11 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchStats, type TodoStats } from "../../api/todos";
-import { onTabChange } from "../../shared/tabs";
 
-const STATS_TAB = "stats";
-
-/** Загружает статистику каждый раз, когда пользователь открывает вкладку «Статистика». */
-export function useStats() {
+/** Загружает статистику каждый раз, когда пользователь открывает вкладку «Статистика» (active становится true). */
+export function useStats(active: boolean) {
   const [stats, setStats] = useState<TodoStats | null>(null);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -25,12 +22,9 @@ export function useStats() {
     }
   }, []);
 
-  useEffect(
-    () => onTabChange((tab) => {
-      if (tab === STATS_TAB) void load();
-    }),
-    [load],
-  );
+  useEffect(() => {
+    if (active) void load();
+  }, [active, load]);
 
   useEffect(() => () => abortRef.current?.abort(), []);
 

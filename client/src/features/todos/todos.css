@@ -1,0 +1,22 @@
+/* Вкладка «Задачи»: вид прежней страницы (список, приоритеты, сроки, постраничная навигация). */
+
+.td-row { display: flex; align-items: center; gap: 8px; margin: 10px 0; flex-wrap: wrap; }
+.td-row input[type="text"] { flex: 1; min-width: 0; }
+
+.td-error { margin: 8px 0; color: var(--danger); }
+.td-muted { margin: 8px 0; color: var(--muted); }
+
+/* ---------- список задач ---------- */
+.td-list { list-style: none; margin: 16px 0; padding: 0; }
+.td-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.td-title { flex: 1; overflow-wrap: anywhere; }
+.td-item.done .td-title { color: var(--muted); text-decoration: line-through; }
+
+.td-prio { padding: 2px 8px; border-radius: 10px; background: #eef1f6; color: var(--muted); font-size: .8rem; }
+.td-item.high .td-prio { background: #fdecea; color: var(--danger); }
+.td-due { color: var(--muted); font-size: .85rem; white-space: nowrap; }
+.td-due.overdue { color: var(--danger); font-weight: 600; }
+
+/* ---------- постраничная навигация ---------- */
+.td-pager { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 16px 0; }
+.td-pager span { color: var(--muted); }

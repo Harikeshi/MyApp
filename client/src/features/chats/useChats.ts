@@ -1,13 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { chatsApi } from "../../api/chats";
-import { ApiError } from "../../api/http";
-import { onSessionEnd, onTabChange } from "../../shared/tabs";
+import { errorMessage } from "../../api/http";
 import type { AiModel, Chat, ChatMessage } from "../../types/chats";
 
-const CHATS_TAB = "chats";
 const MAX_TITLE = 60;
-
-const errorText = (e: unknown) => (e instanceof ApiError ? e.message : "Нет связи с сервером");
 
 /** Название нового чата: начало первого сообщения. */
 function titleFrom(text: string): string {
@@ -17,9 +13,10 @@ function titleFrom(text: string): string {
 
 /**
  * Состояние вкладки «Чаты»: модели, чаты выбранной модели, сообщения открытого чата, отправка.
- * Данные грузятся при каждом открытии вкладки (как в useStats) и сбрасываются при выходе из аккаунта.
+ * Данные грузятся при каждом открытии вкладки (active становится true, как в useStats);
+ * при выходе из аккаунта приложение размонтируется вместе с состоянием.
  */
-export function useChats() {
+export function useChats(active: boolean) {
   const [models, setModels] = useState<AiModel[]>([]);
   const [modelId, setModelIdState] = useState<string | null>(null);
   const [chats, setChats] = useState<Chat[]>([]);
@@ -52,7 +49,7 @@ export function useChats() {
     try {
       setChats(await chatsApi.getChatsByModel(model, ctl.signal));
     } catch (e) {
-      if (!ctl.signal.aborted) setError(errorText(e));
+      if (!ctl.signal.aborted) setError(errorMessage(e));
     }
   }, []);
 
@@ -74,7 +71,7 @@ export function useChats() {
       try {
         setMessages(await chatsApi.getMessages(id, ctl.signal));
       } catch (e) {
-        if (!ctl.signal.aborted) setError(errorText(e));
+        if (!ctl.signal.aborted) setError(errorMessage(e));
       }
     },
     [setChatId],
@@ -105,7 +102,7 @@ export function useChats() {
       }
       if (next) await loadChats(next);
     } catch (e) {
-      setError(errorText(e));
+      setError(errorMessage(e));
     }
   }, [setModelId, startNewChat, loadChats]);
 
@@ -138,7 +135,7 @@ export function useChats() {
         setMessages((prev) => [...prev.filter((m) => m.id !== pendingId), result.userMessage, result.assistantMessage]);
         return true;
       } catch (e) {
-        setError(errorText(e));
+        setError(errorMessage(e));
         if (id) {
           // сервер мог сохранить сообщение до сбоя: показываем реальную историю вместо временной копии
           try {
@@ -157,26 +154,9 @@ export function useChats() {
     [setChatId, loadChats],
   );
 
-  const reset = useCallback(() => {
-    chatsCtl.current?.abort();
-    messagesCtl.current?.abort();
-    setModels([]);
-    setModelId(null);
-    setChats([]);
-    setChatId(null);
-    setMessages([]);
-    setError(null);
-  }, [setModelId, setChatId]);
-
-  useEffect(
-    () =>
-      onTabChange((tab) => {
-        if (tab === CHATS_TAB) void refresh();
-      }),
-    [refresh],
-  );
-
-  useEffect(() => onSessionEnd(reset), [reset]);
+  useEffect(() => {
+    if (active) void refresh();
+  }, [active, refresh]);
 
   useEffect(
     () => () => {

@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import type { MessageRole } from "../../types/chats";
-import { onSessionEnd } from "../../shared/tabs";
 import MessageContent from "./MessageContent";
 import { useChats } from "./useChats";
 import "./chats.css";
@@ -16,14 +15,11 @@ const dateFormat = new Intl.DateTimeFormat("ru-RU", {
 });
 const formatDate = (iso: string) => dateFormat.format(new Date(iso));
 
-export default function Chats() {
-  const c = useChats();
+export default function Chats({ active }: { active: boolean }) {
+  const c = useChats(active);
   const [draft, setDraft] = useState("");
   const messagesRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-
-  // после выхода из аккаунта не оставляем чужой неотправленный текст
-  useEffect(() => onSessionEnd(() => setDraft("")), []);
 
   // прокрутка к последнему сообщению
   useEffect(() => {

@@ -1,16 +1,13 @@
+import "./styles.css";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import Stats from "./features/stats/Stats";
-import Chats from "./features/chats/Chats";
+import App from "./App";
+import { AuthProvider } from "./features/auth/AuthContext";
 
-createRoot(document.getElementById("react-root")!).render(
+createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <Stats />
-  </StrictMode>
-);
-
-createRoot(document.getElementById("chats-root")!).render(
-  <StrictMode>
-    <Chats />
+    <AuthProvider>
+      <App />
+    </AuthProvider>
   </StrictMode>
 );

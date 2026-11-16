@@ -1,86 +1,14 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="ru">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Мои задачи</title>
-    <link rel="stylesheet" href="/css/site.css">
+    <!-- Всё приложение (вход, задачи, статистика, чаты) — React-клиент из client/; сборка кладёт файлы в wwwroot/app -->
+    <link rel="stylesheet" href="/app/assets/app.css">
 </head>
 <body>
-<header id="topbar" hidden>
-    <nav id="tabs">
-        <button data-tab="todos" class="active">Задачи</button>
-        <button data-tab="stats">Статистика</button>
-        <button data-tab="chats">Чаты</button>
-    </nav>
-    <div class="user">
-        <button id="userName" type="button"></button>
-        <button id="logout">Выйти</button>
-    </div>
-</header>
-<!-- <h1>Мои задачи</h1> -->
-<div id="msg" class="msg" role="status"></div>
-
-<section id="auth">
-    <h2 id="authTitle">Вход</h2>
-    <label id="nameRow" hidden>Имя пользователя <input id="displayName" type="text" maxlength="30" autocomplete="nickname"></label>
-    <label>Почта <input id="email" type="email" autocomplete="username"></label>
-    <label id="pwdRow">Пароль <input id="password" type="password" autocomplete="current-password"></label>
-    <div id="captcha"></div>
-    <div class="row" id="loginButtons"><button id="login">Войти</button></div>
-    <div class="row" id="registerButtons" hidden><button id="register">Зарегистрироваться</button></div>
-    <div class="row" id="forgotButtons" hidden><button id="sendReset">Отправить ссылку</button></div>
-    <p>
-        <a href="#" id="toRegister">Создать аккаунт</a>
-        <a href="#" id="forgotLink">Забыли пароль?</a>
-        <a href="#" id="toLogin" hidden>Назад ко входу</a>
-    </p>
-</section>
-
-<section id="reset" hidden>
-    <h2>Новый пароль</h2>
-    <label>Новый пароль <input id="newPassword" type="password" autocomplete="new-password"></label>
-    <label>Повторите пароль <input id="newPassword2" type="password" autocomplete="new-password"></label>
-    <button id="doReset">Сохранить пароль</button>
-</section>
-
-<section id="app" hidden>
-    <div id="tab-todos">
-        <div class="row">
-            <input id="title" type="text" maxlength="200" placeholder="Новая задача">
-        </div>
-        <div class="row">
-            <input id="due" type="date" title="Срок">
-            <select id="priority" title="Приоритет">
-                <option value="low">Низкий</option>
-                <option value="normal" selected>Обычный</option>
-                <option value="high">Высокий</option>
-            </select>
-            <button id="add">Добавить</button>
-        </div>
-        <ul id="list"></ul>
-        <div id="pager" class="pager" hidden>
-            <button id="prevPage" type="button">← Назад</button>
-            <span id="pageInfo"></span>
-            <button id="nextPage" type="button">Вперёд →</button>
-        </div>
-    </div>
-    <div id="tab-stats" hidden>
-        <div id="react-root"></div>
-    </div>
-    <div id="tab-chats" hidden>
-        <div id="chats-root"></div>
-    </div>
-    <div id="tab-settings" hidden>
-        <h2>Настройки</h2>
-        <!-- сюда добавите позже -->
-    </div>
-</section>
-
-<script src="/js/turnstile-boot.js"></script>
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstile" async defer></script>
-<script type="module" src="/js/main.js"></script>
-<link rel="stylesheet" href="/app/assets/app.css">
+<div id="root"></div>
 <script type="module" src="/app/assets/app.js"></script>
 </body>
 </html>

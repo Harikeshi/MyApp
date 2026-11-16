@@ -10,8 +10,8 @@ const priorityRows = (s: TodoStats): PriorityRow[] => [
   { key: "low", label: "Низкий", count: s.lowPriorityOpen },
 ];
 
-export default function Stats() {
-  const { stats, error } = useStats();
+export default function Stats({ active }: { active: boolean }) {
+  const { stats, error } = useStats(active);
 
   if (error) return <p className="st-error">{error}</p>;
   if (!stats) return <p className="st-muted">Загрузка…</p>;
