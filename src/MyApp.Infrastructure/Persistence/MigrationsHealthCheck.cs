@@ -11,7 +11,7 @@ public class MigrationsHealthCheck(AppDbContext db) : IHealthCheck
     {
         var pending = await db.Database.GetPendingMigrationsAsync(ct);
         return pending.Any()
-            ? HealthCheckResult.Unhealthy("Есть неприменённые миграции")
+            ? HealthCheckResult.Unhealthy("Есть не применённые миграции")
             : HealthCheckResult.Healthy();
     }
 }

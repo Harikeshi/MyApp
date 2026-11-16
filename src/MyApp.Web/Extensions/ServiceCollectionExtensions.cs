@@ -48,6 +48,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<RegistrationGate>();
         services.AddAppRateLimiting();
 
+        // чаты: пересылка /api/** отдельному сервису AiChat
+        services.AddAiChatProxy(cfg);
+
         return services;
     }
 

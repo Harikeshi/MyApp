@@ -11,14 +11,14 @@
     <nav id="tabs">
         <button data-tab="todos" class="active">Задачи</button>
         <button data-tab="stats">Статистика</button>
-        <button data-tab="settings">Настройки</button>
+        <button data-tab="chats">Чаты</button>
     </nav>
     <div class="user">
-        <span id="userName"></span>
+        <button id="userName" type="button"></button>
         <button id="logout">Выйти</button>
     </div>
 </header>
-<h1>Мои задачи</h1>
+<!-- <h1>Мои задачи</h1> -->
 <div id="msg" class="msg" role="status"></div>
 
 <section id="auth">
@@ -68,7 +68,11 @@
     <div id="tab-stats" hidden>
         <div id="react-root"></div>
     </div>
+    <div id="tab-chats" hidden>
+        <div id="chats-root"></div>
+    </div>
     <div id="tab-settings" hidden>
+        <h2>Настройки</h2>
         <!-- сюда добавите позже -->
     </div>
 </section>

@@ -62,6 +62,7 @@ export async function showApp() {
 
 export function logout(message = "") {
     clearToken();
+    window.dispatchEvent(new Event("sessionend"));   // React-вкладки очищают данные прошлого пользователя
     resetTodosPage();
     $("app").hidden = true;
     $("topbar").hidden = true;

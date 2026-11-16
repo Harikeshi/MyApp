@@ -66,6 +66,14 @@ section p a { margin-right: 12px; }
 #tabs button.active { color: var(--accent); border-bottom-color: var(--accent); }
 #topbar .user { display: flex; align-items: center; gap: 12px; }
 
+/* имя пользователя открывает «Настройки» */
+#userName { border: 0; background: none; padding: 6px 8px; color: inherit; font-weight: 600; }
+#userName.active { color: var(--accent); }
+#userName:hover { text-decoration: underline; }
+
+/* вкладка «Чаты» шире остальных: список чатов слева, переписка справа */
+body.wide { max-width: 1200px; }
+
 /* ---------- список задач ---------- */
 #list { list-style: none; margin: 16px 0; padding: 0; }
 #list li { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }

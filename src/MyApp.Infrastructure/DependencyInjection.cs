@@ -14,8 +14,7 @@ namespace MyApp.Infrastructure;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddInfrastructure(
-        this IServiceCollection services, IConfiguration cfg, IHostEnvironment env)
+    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration cfg, IHostEnvironment env)
     {
         // ---------- база данных ----------
         // В тестах (среда Testing) базу подставляет ApiFactory.
