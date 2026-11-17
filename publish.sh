@@ -14,7 +14,7 @@ set -euo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-SERVER="${1:-${SERVER:-user@sshch.online}}"
+SERVER="${1:-${SERVER:-deploy@144.31.118.84}}"
 SITE_URL="${SITE_URL:-https://sshch.online}"
 REMOTE_TEMP="/tmp/myapp-new"
 REMOTE_DEPLOY="/usr/local/bin/myapp-deploy.sh"
