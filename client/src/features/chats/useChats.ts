@@ -106,9 +106,9 @@ export function useChats(active: boolean) {
     }
   }, [setModelId, startNewChat, loadChats]);
 
-  /** Отправляет сообщение; в «новом» чате сначала создаёт чат. Возвращает false, если отправить не удалось. */
+  /** Отправляет сообщение (с файлами или без); в «новом» чате сначала создаёт чат. Возвращает false, если отправить не удалось. */
   const send = useCallback(
-    async (text: string): Promise<boolean> => {
+    async (text: string, files: File[] = []): Promise<boolean> => {
       const model = modelIdRef.current;
       if (!model || sendingRef.current) return false;
 
@@ -120,7 +120,7 @@ export function useChats(active: boolean) {
       const pendingId = `pending-${Date.now()}`;
       try {
         if (!id) {
-          const chat = await chatsApi.createChat(model, titleFrom(text));
+          const chat = await chatsApi.createChat(model, titleFrom(text || files[0]?.name || "Файлы"));
           id = chat.id;
           setChatId(id);
         }
@@ -128,10 +128,21 @@ export function useChats(active: boolean) {
         // сообщение видно сразу, не дожидаясь ответа модели
         setMessages((prev) => [
           ...prev,
-          { id: pendingId, role: "user", content: text, createdAt: new Date().toISOString() },
+          {
+            id: pendingId,
+            role: "user",
+            content: text,
+            createdAt: new Date().toISOString(),
+            attachments: files.map((f, i) => ({
+              id: `${pendingId}-${i}`,
+              fileName: f.name,
+              contentType: f.type,
+              fileSize: f.size,
+            })),
+          },
         ]);
 
-        const result = await chatsApi.sendMessage(id, text);
+        const result = await chatsApi.sendMessage(id, text, files);
         setMessages((prev) => [...prev.filter((m) => m.id !== pendingId), result.userMessage, result.assistantMessage]);
         return true;
       } catch (e) {

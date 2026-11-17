@@ -2,6 +2,7 @@
    кнопки и поля без своего стиля получают общий вид из styles.css (:where(.ch) button и т. п.). */
 
 .ch {
+  position: relative;
   display: flex;
   height: calc(100vh - 112px);              /* шапка 56 + отступы страницы 48 + рамка */
   height: calc(100dvh - 112px);
@@ -20,7 +21,7 @@
 
 .ch-new { width: 100%; }
 
-.ch-list { list-style: none; margin: 0; padding: 0; flex: 0 1 auto; overflow-y: auto; }
+.ch-list { list-style: none; margin: 0; padding: 0; flex: 0 1 auto; min-height: 0; overflow-y: auto; }
 .ch-item {
   display: block; width: 100%; padding: 10px 12px; border: 0; border-bottom: 1px solid #f0f0f0;
   border-radius: 0; background: none; text-align: left; cursor: pointer;
@@ -89,9 +90,48 @@
 .ch-send { background: #3b82f6; border-color: #3b82f6; color: #fff; }
 .ch-send:hover:not(:disabled) { background: #2563eb; border-color: #2563eb; }
 
+/* ---------- верхняя полоса: сворачивание списка, текущая модель и чат ---------- */
+.ch { --ch-bar: 48px; }
+.ch-bar { flex: none; display: flex; align-items: center; gap: 8px; height: var(--ch-bar); padding: 0 10px; background: #fff; border-bottom: 1px solid #ddd; }
+.ch-toggle { flex: none; display: flex; align-items: center; gap: 6px; padding: 6px 10px; }
+.ch-bar-title { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.2; }
+.ch-bar-model { font-size: 12px; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ch-bar-chat { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ch-bar-new { flex: none; padding: 6px 12px; font-size: 18px; line-height: 1; }
+
+/* ---------- файлы в сообщениях ---------- */
+.ch-attachments { margin-top: 8px; }
+.ch-files { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.ch-file { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 6px 8px; border: 1px solid #e3e6eb; border-radius: 8px; background: rgba(255, 255, 255, .75); }
+.ch-file-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ch-file-size { flex: none; font-size: 12px; color: #888; }
+.ch-file-dl, .ch-file-all { padding: 4px 10px; font-size: 13px; }
+.ch-file-dl { flex: none; }
+.ch-file-all { margin-top: 6px; }
+.ch-file-error { margin: 6px 0 0; color: #b91c1c; font-size: 13px; }
+
+/* ---------- выбранные, но ещё не отправленные файлы ---------- */
+.ch-pending { list-style: none; margin: 0; padding: 8px 12px 0; display: flex; flex-wrap: wrap; gap: 6px; background: #fff; border-top: 1px solid #ddd; }
+.ch-pending-item { display: flex; align-items: center; gap: 6px; max-width: 100%; padding: 3px 4px 3px 10px; border: 1px solid #cbd5e1; border-radius: 999px; background: #f1f5f9; font-size: 13px; }
+.ch-pending-name { max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ch-pending-item button { padding: 0 8px; border: 0; background: none; line-height: 1.6; }
+.ch-pending + .ch-input { border-top: 0; }
+.ch-attach { flex: none; padding: 8px 10px; font-size: 18px; line-height: 1; }
+
+/* ---------- телефон и узкий экран: переписка на весь экран, список чатов выезжает по кнопке ---------- */
 @media (max-width: 720px) {
-  .ch { flex-direction: column; height: auto; min-height: 0; }
-  .ch-sidebar { width: auto; max-height: 220px; border-right: 0; border-bottom: 1px solid #ddd; }
-  .ch-main { height: 70vh; }
-  .ch-msg { max-width: 92%; }
+  .ch { flex-direction: column; height: calc(100vh - 56px); height: calc(100dvh - 56px); min-height: 0; border: 0; border-radius: 0; }
+  .ch-main { flex: 1; min-height: 0; }
+  .ch-sidebar {
+    position: absolute; top: var(--ch-bar); left: 0; right: 0; bottom: 0; z-index: 10;
+    width: auto; max-height: none; border-right: 0;
+  }
+  .ch-list { flex: 1 1 auto; }
+  .ch-messages { padding: 12px 10px; }
+  .ch-msg { max-width: 94%; }
+  /* шрифт 16px и больше: иначе iOS приближает страницу при фокусе на поле */
+  .ch-model, .ch-input textarea { font-size: 16px; }
+  .ch-input { padding: 8px; }
+  .ch-pending { padding: 8px 8px 0; }
+  .ch-pending-name { max-width: 140px; }
 }

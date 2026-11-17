@@ -59,12 +59,22 @@ a { color: var(--accent); }
 :where(.td, .ch) button:hover:not(:disabled) { background: #f4f6fa; }
 :where(.td, .ch) button:disabled { opacity: .5; cursor: default; }
 
+/* Чаты на планшете и телефоне: окно переписки занимает весь экран под шапкой (без отступов страницы) */
+@media (max-width: 720px) {
+  .content.chats { padding: 0; }
+}
+
 @media (max-width: 600px) {
-  .header { gap: 8px; padding: 0 10px; }
+  .header { gap: 6px; padding: 0 8px; }
   .brand { display: none; }
-  .tab { padding: 0 8px; }
-  .user { gap: 4px; }
-  .user .user-name { max-width: 72px; }
+  /* вкладки при нехватке места прокручиваются, а не раздвигают страницу вширь */
+  .tabs { min-width: 0; overflow-x: auto; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { flex: none; padding: 0 10px; white-space: nowrap; }
+  .user { flex: none; gap: 4px; }
+  .user .user-name { max-width: 56px; }
+  .user button { padding: 6px 8px; }
   .content { padding: 16px 10px; }
+  .content.chats { padding: 0; }
   .panel { padding: 12px; }
 }

@@ -49,7 +49,7 @@ export default function Layout() {
       </header>
 
       {/* вкладке «Чаты» нужна ширина: список чатов слева, переписка справа */}
-      <main className={tab === "chats" ? "content wide" : "content"}>
+      <main className={tab === "chats" ? "content wide chats" : "content"}>
         <section className="panel" hidden={tab !== "todos"}>
           <Todos />
         </section>

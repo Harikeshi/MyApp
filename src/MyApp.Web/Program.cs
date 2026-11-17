@@ -5,6 +5,11 @@ using MyApp.Web.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Вложения в чатах идут через этот сервис (YARP) в AiChat.Api. Лимит Kestrel по умолчанию около 30 МБ:
+// держим его не меньше лимита AiChat (Storage:MaxRequestBytes). Значение можно задать: Upload__MaxRequestBytes.
+builder.WebHost.ConfigureKestrel(o =>
+    o.Limits.MaxRequestBodySize = builder.Configuration.GetValue("Upload:MaxRequestBytes", 45L * 1024 * 1024));
+
 builder.AddAppLogging();
 
 builder.Services

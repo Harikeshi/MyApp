@@ -40,12 +40,14 @@ async function request<T>(method: string, path: string, body?: unknown, signal?:
   if (!token) throw new ApiError(401, "Войдите, чтобы увидеть данные");
 
   const headers: Record<string, string> = { Authorization: `Bearer ${token}`, Accept: "application/json" };
-  if (body !== undefined) headers["Content-Type"] = "application/json";
+  // FormData уходит как есть: Content-Type с boundary браузер выставит сам
+  const isForm = body instanceof FormData;
+  if (body !== undefined && !isForm) headers["Content-Type"] = "application/json";
 
   const res = await fetch(path, {
     method,
     headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: body === undefined ? undefined : isForm ? (body as FormData) : JSON.stringify(body),
     signal,
   });
 
@@ -64,6 +66,34 @@ export const getJson = <T>(path: string, signal?: AbortSignal) => request<T>("GE
 
 export const postJson = <T>(path: string, body: unknown, signal?: AbortSignal) =>
   request<T>("POST", path, body, signal);
+
+export const postForm = <T>(path: string, form: FormData, signal?: AbortSignal) =>
+  request<T>("POST", path, form, signal);
+
+/**
+ * Скачивает файл и отдаёт его браузеру как загрузку. Обычная ссылка <a href> не подходит:
+ * токен хранится в sessionStorage, а не в cookie, и в такой запрос не попал бы заголовок Authorization.
+ */
+export async function downloadFile(path: string, fileName: string): Promise<void> {
+  const token = getToken();
+  if (!token) throw new ApiError(401, "Войдите, чтобы скачать файл");
+
+  const res = await fetch(path, { headers: { Authorization: `Bearer ${token}` } });
+  if (res.status === 401) {
+    notifyUnauthorized();
+    throw new ApiError(401, "Сессия истекла, войдите снова");
+  }
+  if (!res.ok) throw new ApiError(res.status, (await serverMessage(res)) ?? `Ошибка ${res.status}`);
+
+  const url = URL.createObjectURL(await res.blob());
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000); // браузеру нужно время, чтобы начать загрузку
+}
 
 export const putJson = (path: string, body: unknown) => request<void>("PUT", path, body);
 

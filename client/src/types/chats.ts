@@ -15,11 +15,21 @@ export interface Chat {
 
 export type MessageRole = "user" | "assistant" | "system";
 
+/** Файл, прикреплённый к сообщению (загруженный пользователем или созданный моделью). */
+export interface Attachment {
+  id: string;
+  fileName: string;
+  contentType: string;
+  fileSize: number;
+}
+
 export interface ChatMessage {
   id: string;
   role: MessageRole;
   content: string;
   createdAt: string;
+  /** Нет у временного сообщения и у ответов старого сервера. */
+  attachments?: Attachment[];
 }
 
 /** Ответ POST /api/chats/{id}/messages: сохранённое сообщение пользователя и ответ модели. */
