@@ -60,16 +60,24 @@ a { color: var(--accent); }
 :where(.td, .ch) button:disabled { opacity: .5; cursor: default; }
 
 /* ---------- узкий экран: вкладки, имя и «Выйти» прячутся в раскрывающееся меню ---------- */
-.menu-toggle, .menu, .menu-backdrop { display: none; }
+.menu-toggle, .menu, .menu-backdrop, .mobile-title, .mobile-user { display: none; }
 
 @media (max-width: 768px) {
   .header { position: sticky; top: 0; z-index: 30; gap: 8px; padding: 0 8px; }
   .brand, .tabs, .user { display: none; }
 
   .menu-toggle {
-    display: flex; align-items: center; gap: 8px; max-width: 100%; padding: 8px 12px;
-    border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--text); font-weight: 600;
+    display: flex; align-items: center; justify-content: center; flex: none; width: 40px; height: 40px; padding: 0;
+    border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--text); font-size: 1.2rem; line-height: 1;
   }
+  /* название текущей вкладки: просто текст, не кнопка */
+  .mobile-title { display: block; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+  /* имя пользователя: кнопка, открывает настройки */
+  .mobile-user {
+    display: block; flex: none; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--text);
+  }
+  .mobile-user.active { border-color: var(--accent); color: var(--accent); background: #eef3ff; font-weight: 600; }
   .menu {
     display: flex; flex-direction: column; position: absolute; top: 100%; left: 0; right: 0; z-index: 50;
     padding: 6px 8px 10px; background: var(--surface); border-bottom: 1px solid var(--line);
@@ -81,7 +89,6 @@ a { color: var(--accent); }
   }
   .menu-item:hover { background: #f4f6fa; }
   .menu-item.active { color: var(--accent); background: #eef3ff; font-weight: 600; }
-  .menu-sub { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: .85rem; font-weight: 400; }
   .menu-sep { height: 1px; margin: 6px 0; background: var(--line); }
   /* затемнение под шапкой: тап по нему закрывает меню */
   .menu-backdrop { display: block; position: fixed; inset: 56px 0 0 0; z-index: 40; background: rgba(0, 0, 0, .25); }

@@ -20,8 +20,8 @@ const LABELS: Record<Tab, string> = { todos: "Задачи", stats: "Стати�
  * так в «Чатах» не пропадают открытый чат и неотправленный текст при переключении.
  * «Настройки» открываются кликом по имени пользователя.
  *
- * На узком экране вкладки, имя и «Выйти» не помещаются в шапку, поэтому вместо них показывается одна кнопка
- * с названием текущей вкладки; по ней разворачивается меню (CSS переключает вид по ширине экрана).
+ * На узком экране вкладки, имя и «Выйти» не помещаются в шапку, поэтому шапка такая: «☰» (разворачивает меню с вкладками
+ * и «Выйти»), название текущей вкладки и имя пользователя, по которому открываются настройки (CSS переключает вид по ширине).
  */
 export default function Layout() {
   const { user, logout } = useAuth();
@@ -70,16 +70,25 @@ export default function Layout() {
           </button>
         </div>
 
-        {/* узкий экран */}
+        {/* узкий экран: «☰» (меню), название текущей вкладки (не кнопка), имя пользователя (кнопка, ведёт в настройки) */}
         <button
           type="button"
           className="menu-toggle"
+          aria-label="Меню"
           aria-expanded={menuOpen}
           aria-controls="app-menu"
           onClick={() => setMenuOpen((open) => !open)}
         >
-          <span aria-hidden="true">{menuOpen ? "✕" : "☰"}</span>
-          <span>{LABELS[tab]}</span>
+          {menuOpen ? "✕" : "☰"}
+        </button>
+        <span className="mobile-title">{LABELS[tab]}</span>
+        <button
+          type="button"
+          className={tab === "settings" ? "mobile-user active" : "mobile-user"}
+          title={user?.email}
+          onClick={() => go("settings")}
+        >
+          {user?.name}
         </button>
 
         <nav id="app-menu" className="menu" hidden={!menuOpen}>
@@ -89,10 +98,6 @@ export default function Layout() {
             </button>
           ))}
           <div className="menu-sep" role="separator" />
-          <button type="button" className={tab === "settings" ? "menu-item active" : "menu-item"} onClick={() => go("settings")}>
-            <span>Настройки</span>
-            <span className="menu-sub">{user?.name}</span>
-          </button>
           <button type="button" className="menu-item" onClick={() => void logout()}>
             Выйти
           </button>
