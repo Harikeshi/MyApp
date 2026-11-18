@@ -1,4 +1,4 @@
-import { downloadFile, getJson, postForm, postJson } from "./http";
+import { deleteJson, downloadFile, getJson, postForm, postJson, putJson } from "./http";
 import type { AiModel, Attachment, Chat, SendMessageResult, ChatMessage, TokenStats } from "../types/chats";
 
 /** Имя файла без каталогов: модель может вернуть путь вида "src/Program.cs". */
@@ -15,6 +15,16 @@ export const chatsApi = {
     getJson<ChatMessage[]>(`/api/chats/${chatId}/messages`, signal),
 
   createChat: (modelId: string, title: string) => postJson<Chat>("/api/chats", { modelId, title }),
+
+  /** Удаляет чат вместе с сообщениями и файлами. */
+  deleteChat: (chatId: string) => deleteJson(`/api/chats/${chatId}`),
+
+  /** Меняет текст сообщения; возвращает обновлённое сообщение. */
+  editMessage: (chatId: string, messageId: string, content: string) =>
+    putJson<ChatMessage>(`/api/chats/${chatId}/messages/${messageId}`, { content }),
+
+  /** Удаляет одно сообщение вместе с его файлами. */
+  deleteMessage: (chatId: string, messageId: string) => deleteJson(`/api/chats/${chatId}/messages/${messageId}`),
 
   /** Без файлов уходит JSON, с файлами — multipart/form-data (поля content и files). */
   sendMessage: (chatId: string, content: string, files: File[] = []) => {

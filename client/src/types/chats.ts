@@ -33,6 +33,8 @@ export interface ChatMessage {
   /** Токены ответа ассистента: сколько ушло на запрос (вся история) и на сам ответ. null/нет — неизвестно. */
   inputTokens?: number | null;
   outputTokens?: number | null;
+  /** Когда текст сообщения правили; нет/null — не менялось. */
+  editedAt?: string | null;
 }
 
 /** Ответ POST /api/chats/{id}/messages: сохранённое сообщение пользователя и ответ модели. */

@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
-import type { MessageRole } from "../../types/chats";
+import type { Chat, ChatMessage, MessageRole } from "../../types/chats";
 import AttachmentList, { formatSize } from "./AttachmentList";
+import ChatActionsMenu, { type MenuItem } from "./ChatActionsMenu";
+import { copyText } from "./clipboard";
+import ConfirmDialog from "./ConfirmDialog";
 import { formatNumber } from "./format";
 import MessageContent from "./MessageContent";
 import { useChats } from "./useChats";
@@ -34,15 +37,24 @@ export default function Chats({ active }: { active: boolean }) {
   const [attachError, setAttachError] = useState<string | null>(null);
   // на телефоне выбор модели и чатов свёрнут, чтобы переписка занимала весь экран
   const [sidebarOpen, setSidebarOpen] = useState(() => !isMobile());
+  // «⋯» в строке чата: всплывающее меню рядом с кнопкой, затем окно подтверждения удаления
+  const [menu, setMenu] = useState<{ anchor: DOMRect; items: MenuItem[] } | null>(null);
+  const [toDelete, setToDelete] = useState<Chat | null>(null);
+  // действия над сообщением: удаление (с подтверждением), правка на месте, пометка «Скопировано»
+  const [msgToDelete, setMsgToDelete] = useState<ChatMessage | null>(null);
+  const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
+  const [editBusy, setEditBusy] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // прокрутка к последнему сообщению
+  const lastMessageId = c.messages[c.messages.length - 1]?.id;
   useEffect(() => {
     const el = messagesRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [c.messages, c.sending]);
+  }, [lastMessageId, c.sending]);
 
   // поле ввода растёт вместе с текстом
   useEffect(() => {
@@ -117,6 +129,29 @@ export default function Chats({ active }: { active: boolean }) {
     }
   };
 
+  const copyMessage = async (m: ChatMessage) => {
+    if (await copyText(m.content)) {
+      setCopiedId(m.id);
+      window.setTimeout(() => setCopiedId((current) => (current === m.id ? null : current)), 1500);
+    }
+  };
+
+  const openMessageMenu = (m: ChatMessage, anchor: DOMRect) => {
+    const items: MenuItem[] = [];
+    if (m.content) items.push({ label: "Копировать", icon: "📋", onClick: () => void copyMessage(m) });
+    items.push({ label: "Изменить", icon: "✏️", onClick: () => setEditing({ id: m.id, text: m.content }) });
+    items.push({ label: "Удалить", icon: "🗑", danger: true, onClick: () => setMsgToDelete(m) });
+    setMenu({ anchor, items });
+  };
+
+  const saveEdit = async (m: ChatMessage) => {
+    if (!editing || editBusy) return;
+    setEditBusy(true);
+    const ok = await c.editMessage(m.id, editing.text.trim());
+    setEditBusy(false);
+    if (ok) setEditing(null);
+  };
+
   const isNewChat = c.chatId === null;
   const modelName = c.models.find((m) => m.id === c.modelId)?.name ?? "";
   const chatTitle = isNewChat ? "Новый чат" : (c.chats.find((chat) => chat.id === c.chatId)?.title ?? "Чат");
@@ -159,20 +194,38 @@ export default function Chats({ active }: { active: boolean }) {
         <ul className="ch-list">
           {c.chats.map((chat) => (
             <li key={chat.id}>
-              <button
-                type="button"
-                className={chat.id === c.chatId ? "ch-item active" : "ch-item"}
-                disabled={c.sending}
-                onClick={() => {
-                  void c.openChat(chat.id);
-                  collapseOnMobile();
-                }}
-              >
-                <span className="ch-title">{chat.title}</span>
-                <span className="ch-meta">
-                  {formatDate(chat.updatedAt)} · сообщений: {chat.messageCount}
-                </span>
-              </button>
+              <div className={chat.id === c.chatId ? "ch-row active" : "ch-row"}>
+                <button
+                  type="button"
+                  className={chat.id === c.chatId ? "ch-item active" : "ch-item"}
+                  disabled={c.sending}
+                  onClick={() => {
+                    void c.openChat(chat.id);
+                    collapseOnMobile();
+                  }}
+                >
+                  <span className="ch-title">{chat.title}</span>
+                  <span className="ch-meta">
+                    {formatDate(chat.updatedAt)} · сообщений: {chat.messageCount}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className="ch-more"
+                  aria-label="Действия с чатом"
+                  aria-haspopup="menu"
+                  disabled={c.sending}
+                  onClick={(e) => {
+                    const anchor = e.currentTarget.getBoundingClientRect();
+                    setMenu({
+                      anchor,
+                      items: [{ label: "Удалить", icon: "🗑", danger: true, onClick: () => setToDelete(chat) }],
+                    });
+                  }}
+                >
+                  ⋯
+                </button>
+              </div>
             </li>
           ))}
         </ul>
@@ -189,8 +242,8 @@ export default function Chats({ active }: { active: boolean }) {
             aria-controls="ch-sidebar"
             onClick={() => setSidebarOpen((open) => !open)}
           >
-            <span aria-hidden="true">{sidebarOpen ? "<" : ">"}</span>
-            {/* <span>{sidebarOpen ? "Скрыть" : "Чаты"}</span> */}
+            <span aria-hidden="true">{sidebarOpen ? "✕" : "☰"}</span>
+            <span>{sidebarOpen ? "Скрыть" : "Чаты"}</span>
           </button>
           <div className="ch-bar-title">
             {(modelName || usageLine) && (
@@ -217,23 +270,72 @@ export default function Chats({ active }: { active: boolean }) {
             <p className="ch-muted">Напишите первое сообщение или прикрепите файл: чат создастся автоматически.</p>
           )}
 
-          {c.messages.map((m) => (
-            <div key={m.id} className={`ch-msg ch-msg-${m.role}`}>
-              <div className="ch-msg-head">
-                <span className="ch-role">{ROLE_LABEL[m.role]}</span>
-                <time dateTime={m.createdAt}>{formatDate(m.createdAt)}</time>
-              </div>
-              {m.content && <MessageContent text={m.content} markdown={m.role === "assistant"} />}
-              {m.attachments && m.attachments.length > 0 && (
-                <AttachmentList chatId={c.chatId} messageId={m.id} attachments={m.attachments} />
-              )}
-              {m.role === "assistant" && m.inputTokens != null && (
-                <div className="ch-tokens" title="Токены запроса (вся история) и ответа">
-                  ↑ {formatNumber(m.inputTokens)} · ↓ {formatNumber(m.outputTokens ?? 0)} токенов
+          {c.messages.map((m) => {
+            const isEditing = editing?.id === m.id;
+            const canAct = !m.id.startsWith("pending-") && m.role !== "system";
+            const canSave =
+              isEditing && !editBusy && editing.text.trim() !== m.content && (editing.text.trim() !== "" || (m.attachments?.length ?? 0) > 0);
+
+            return (
+              <div key={m.id} className={`ch-msg ch-msg-${m.role}`}>
+                <div className="ch-msg-head">
+                  <span className="ch-msg-meta">
+                    <span className="ch-role">{ROLE_LABEL[m.role]}</span>
+                    <time dateTime={m.createdAt}>{formatDate(m.createdAt)}</time>
+                    {m.editedAt && <span title={formatDate(m.editedAt)}>изменено</span>}
+                    {copiedId === m.id && <span className="ch-copied">Скопировано</span>}
+                  </span>
+                  {canAct && !isEditing && (
+                    <button
+                      type="button"
+                      className="ch-msg-more"
+                      aria-label="Действия с сообщением"
+                      aria-haspopup="menu"
+                      disabled={c.sending}
+                      onClick={(e) => openMessageMenu(m, e.currentTarget.getBoundingClientRect())}
+                    >
+                      ⋯
+                    </button>
+                  )}
                 </div>
-              )}
-            </div>
-          ))}
+
+                {isEditing ? (
+                  <div className="ch-edit">
+                    <textarea
+                      value={editing.text}
+                      autoFocus
+                      rows={Math.min(12, Math.max(3, editing.text.split("\n").length + 1))}
+                      disabled={editBusy}
+                      onChange={(e) => setEditing({ id: m.id, text: e.target.value })}
+                      onKeyDown={(e) => {
+                        if (e.key === "Escape") setEditing(null);
+                        if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && canSave) void saveEdit(m);
+                      }}
+                    />
+                    <div className="ch-edit-actions">
+                      <button type="button" className="ch-edit-save" disabled={!canSave} onClick={() => void saveEdit(m)}>
+                        {editBusy ? "Сохраняю…" : "Сохранить"}
+                      </button>
+                      <button type="button" disabled={editBusy} onClick={() => setEditing(null)}>
+                        Отмена
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  m.content && <MessageContent text={m.content} markdown={m.role === "assistant"} />
+                )}
+
+                {m.attachments && m.attachments.length > 0 && (
+                  <AttachmentList chatId={c.chatId} messageId={m.id} attachments={m.attachments} />
+                )}
+                {m.role === "assistant" && m.inputTokens != null && (
+                  <div className="ch-tokens" title="Токены запроса (вся история) и ответа">
+                    ↑ {formatNumber(m.inputTokens)} · ↓ {formatNumber(m.outputTokens ?? 0)} токенов
+                  </div>
+                )}
+              </div>
+            );
+          })}
 
           {c.sending && <div className="ch-msg ch-msg-assistant ch-typing">Ассистент отвечает…</div>}
         </div>
@@ -277,7 +379,7 @@ export default function Chats({ active }: { active: boolean }) {
             rows={1}
             value={draft}
             disabled={!c.modelId}
-            placeholder="Сообщение"
+            placeholder="Сообщение (Enter — отправить, Shift+Enter — новая строка)"
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={onKeyDown}
           />
@@ -286,6 +388,36 @@ export default function Chats({ active }: { active: boolean }) {
           </button>
         </div>
       </section>
+
+      {menu && <ChatActionsMenu anchor={menu.anchor} items={menu.items} onClose={() => setMenu(null)} />}
+
+      {toDelete && (
+        <ConfirmDialog
+          title="Удалить чат?"
+          message={`«${toDelete.title}»: все сообщения и файлы этого чата будут удалены без возможности восстановления.`}
+          confirmLabel="Удалить"
+          onCancel={() => setToDelete(null)}
+          onConfirm={() => {
+            const id = toDelete.id;
+            setToDelete(null);
+            void c.removeChat(id);
+          }}
+        />
+      )}
+
+      {msgToDelete && (
+        <ConfirmDialog
+          title="Удалить сообщение?"
+          message="Сообщение и его файлы будут удалены. Остальная переписка сохранится."
+          confirmLabel="Удалить"
+          onCancel={() => setMsgToDelete(null)}
+          onConfirm={() => {
+            const id = msgToDelete.id;
+            setMsgToDelete(null);
+            void c.removeMessage(id);
+          }}
+        />
+      )}
     </div>
   );
 }

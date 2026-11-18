@@ -26,6 +26,11 @@
   display: block; width: 100%; padding: 10px 12px; border: 0; border-bottom: 1px solid #f0f0f0;
   border-radius: 0; background: none; text-align: left; cursor: pointer;
 }
+/* строка чата: название слева, «⋯» справа */
+.ch-row { display: flex; align-items: stretch; border-bottom: 1px solid #f0f0f0; }
+.ch-row .ch-item { flex: 1; width: auto; min-width: 0; border-bottom: 0; }
+.ch-more { flex: none; width: 40px; padding: 0; border: 0; border-radius: 0; background: none; color: #667085; font-size: 20px; line-height: 1; }
+.ch-more:hover:not(:disabled) { background: #e5e7eb; }
 .ch-item:hover:not(:disabled) { background: #f3f4f6; }
 .ch-item.active, .ch-item.active:hover:not(:disabled) { background: #e0ecff; }
 .ch-title { display: block; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -46,8 +51,20 @@
 .ch-msg-system { align-self: center; max-width: 90%; background: #fef3c7; font-size: 13px; }
 .ch-typing { color: #888; font-style: italic; }
 
-.ch-msg-head { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 4px; font-size: 12px; color: #666; }
+.ch-msg-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 4px; font-size: 12px; color: #666; }
+.ch-msg-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; min-width: 0; }
 .ch-role { font-weight: 600; }
+.ch-copied { color: #1b7f3b; }
+.ch-msg-more { flex: none; margin: -4px -6px -4px 0; padding: 0 8px; border: 0; border-radius: 6px; background: none; color: #667085; font-size: 18px; line-height: 1.6; }
+.ch-msg-more:hover:not(:disabled) { background: rgba(0, 0, 0, .07); }
+
+/* правка сообщения на месте */
+.ch-edit { display: grid; gap: 8px; }
+.ch-edit textarea { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; font: inherit; resize: vertical; }
+.ch-edit-actions { display: flex; gap: 8px; }
+.ch-edit-actions button { padding: 5px 12px; font-size: 13px; }
+.ch-edit-save { background: #2457d6; border: 1px solid #2457d6; color: #fff; }
+.ch-edit-save:disabled { opacity: .5; }
 .ch-msg-head time { white-space: nowrap; }
 
 /* что набрал пользователь: переносы строк и отступы сохраняются как есть */
@@ -132,8 +149,39 @@
   .ch-messages { padding: 12px 10px; }
   .ch-msg { max-width: 94%; }
   /* шрифт 16px и больше: иначе iOS приближает страницу при фокусе на поле */
-  .ch-model, .ch-input textarea { font-size: 16px; }
+  .ch-model, .ch-input textarea, .ch-edit textarea { font-size: 16px; }
   .ch-input { padding: 8px; }
   .ch-pending { padding: 8px 8px 0; }
   .ch-pending-name { max-width: 140px; }
+}
+
+/* ---------- всплывающие окна (рисуются в document.body, поэтому стили не привязаны к .ch) ---------- */
+.pop-backdrop { position: fixed; inset: 0; z-index: 100; }
+.pop-menu {
+  position: fixed; z-index: 101; padding: 4px; background: #fff; border: 1px solid #e3e6eb; border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .18);
+}
+.pop-item {
+  display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px 12px; border: 0; border-radius: 6px;
+  background: none; color: #1c2330; font: inherit; text-align: left; cursor: pointer;
+}
+.pop-item:hover { background: #f3f4f6; }
+.pop-danger { color: #c62828; }
+.pop-danger:hover { background: #fdeaea; }
+
+.dlg-backdrop {
+  position: fixed; inset: 0; z-index: 110; display: flex; align-items: center; justify-content: center;
+  padding: 16px; background: rgba(0, 0, 0, .4);
+}
+.dlg { width: 100%; max-width: 380px; padding: 20px; background: #fff; border-radius: 12px; box-shadow: 0 16px 40px rgba(0, 0, 0, .3); }
+.dlg h3 { margin: 0 0 8px; font-size: 1.1rem; }
+.dlg p { margin: 0 0 18px; color: #475467; overflow-wrap: anywhere; }
+.dlg-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.dlg-btn { padding: 9px 16px; border: 1px solid #d0d5dd; border-radius: 8px; background: #fff; color: #1c2330; font: inherit; cursor: pointer; }
+.dlg-btn:hover { background: #f3f4f6; }
+.dlg-danger { background: #c62828; border-color: #c62828; color: #fff; }
+.dlg-danger:hover { background: #a61f1f; }
+@media (max-width: 480px) {
+  .dlg-actions { flex-direction: column-reverse; }
+  .dlg-btn { width: 100%; padding: 12px 16px; }
 }

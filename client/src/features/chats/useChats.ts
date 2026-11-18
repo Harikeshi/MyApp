@@ -106,6 +106,65 @@ export function useChats(active: boolean) {
     }
   }, [setModelId, startNewChat, loadChats]);
 
+  /** Удаляет чат. Если он открыт, переключает на «новый чат». Возвращает false, если удалить не удалось. */
+  const removeChat = useCallback(
+    async (id: string): Promise<boolean> => {
+      if (sendingRef.current) return false;
+      try {
+        await chatsApi.deleteChat(id);
+      } catch (e) {
+        setError(errorMessage(e));
+        const model = modelIdRef.current;
+        if (model) void loadChats(model); // например, чат уже удалён в другой вкладке: список надо обновить
+        return false;
+      }
+      setChats((prev) => prev.filter((chat) => chat.id !== id));
+      if (chatIdRef.current === id) startNewChat();
+      return true;
+    },
+    [loadChats, startNewChat],
+  );
+
+  /** Меняет текст сообщения открытого чата. Возвращает false, если не удалось (причина — в error). */
+  const editMessage = useCallback(async (messageId: string, content: string): Promise<boolean> => {
+    const chat = chatIdRef.current;
+    if (!chat || sendingRef.current) return false;
+    try {
+      const updated = await chatsApi.editMessage(chat, messageId, content);
+      setMessages((prev) => prev.map((m) => (m.id === messageId ? updated : m)));
+      setError(null);
+      return true;
+    } catch (e) {
+      setError(errorMessage(e));
+      return false;
+    }
+  }, []);
+
+  /** Удаляет сообщение открытого чата (остальные остаются). */
+  const removeMessage = useCallback(
+    async (messageId: string): Promise<boolean> => {
+      const chat = chatIdRef.current;
+      if (!chat || sendingRef.current) return false;
+      try {
+        await chatsApi.deleteMessage(chat, messageId);
+      } catch (e) {
+        setError(errorMessage(e));
+        try {
+          setMessages(await chatsApi.getMessages(chat)); // например, сообщение уже удалено в другой вкладке
+        } catch {
+          /* ошибка уже показана */
+        }
+        return false;
+      }
+      setMessages((prev) => prev.filter((m) => m.id !== messageId));
+      setError(null);
+      const model = modelIdRef.current;
+      if (model) void loadChats(model); // обновить число сообщений в списке
+      return true;
+    },
+    [loadChats],
+  );
+
   /** Отправляет сообщение (с файлами или без); в «новом» чате сначала создаёт чат. Возвращает false, если отправить не удалось. */
   const send = useCallback(
     async (text: string, files: File[] = []): Promise<boolean> => {
@@ -177,5 +236,5 @@ export function useChats(active: boolean) {
     [],
   );
 
-  return { models, modelId, chats, chatId, messages, sending, error, selectModel, startNewChat, openChat, send };
+  return { models, modelId, chats, chatId, messages, sending, error, selectModel, startNewChat, openChat, removeChat, editMessage, removeMessage, send };
 }
