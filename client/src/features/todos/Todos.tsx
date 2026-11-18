@@ -45,11 +45,7 @@ export default function Todos() {
           />
         </div>
         <div className="td-row">
-          <div className={due ? "td-date" : "td-date empty"}>
-            {/* на iPhone пустое поле даты вообще ничего не рисует: показываем свою подпись поверх */}
-            <span className="td-date-ph" aria-hidden="true">
-              Срок (необязательно)
-            </span>
+          <div className="td-date">
             <input type="date" value={due} aria-label="Срок" onChange={(e) => setDue(e.target.value)} />
             {due && (
               <button type="button" className="td-date-clear" aria-label="Убрать срок" onClick={() => setDue("")}>

@@ -40,9 +40,17 @@ a { color: var(--accent); }
 .user button { padding: 6px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
 
 /* имя пользователя открывает «Настройки» */
-.user .user-name { padding: 6px 8px; border: 0; background: none; color: var(--text); font-weight: 600; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.user .user-name:hover { text-decoration: underline; }
-.user .user-name.active { color: var(--accent); }
+/* аватар (кнопка → настройки) и имя (обычный текст) */
+.user-chip { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.user-chip .avatar {
+  flex: none; display: grid; place-items: center; width: 36px; height: 36px; padding: 0;
+  border: 2px solid transparent; border-radius: 50%; background: #eef3ff; color: var(--accent);
+  font-size: .85rem; font-weight: 700; line-height: 1; letter-spacing: .02em;
+}
+.user-chip .avatar:hover { border-color: var(--accent); }
+.user-chip-name { min-width: 0; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); font-weight: 600; }
+.user-chip.active .avatar { background: var(--accent); color: #fff; }
+.user-chip.active .user-chip-name { color: var(--accent); }
 
 /* ---------- содержимое ---------- */
 .content { max-width: 720px; margin: 0 auto; padding: 24px 20px; }
@@ -72,12 +80,9 @@ a { color: var(--accent); }
   }
   /* название текущей вкладки: просто текст, не кнопка */
   .mobile-title { display: block; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
-  /* имя пользователя: кнопка, открывает настройки */
-  .mobile-user {
-    display: block; flex: none; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--text);
-  }
-  .mobile-user.active { border-color: var(--accent); color: var(--accent); background: #eef3ff; font-weight: 600; }
+  /* аватар с именем справа */
+  .mobile-user { display: flex; flex: none; min-width: 0; max-width: 50%; }
+  .mobile-user .user-chip-name { max-width: 100%; }
   .menu {
     display: flex; flex-direction: column; position: absolute; top: 100%; left: 0; right: 0; z-index: 50;
     padding: 6px 8px 10px; background: var(--surface); border-bottom: 1px solid var(--line);

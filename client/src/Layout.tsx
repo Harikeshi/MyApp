@@ -15,13 +15,37 @@ const TABS: { id: Exclude<Tab, "settings">; label: string }[] = [
 
 const LABELS: Record<Tab, string> = { todos: "Задачи", stats: "Статистика", chats: "Чаты", settings: "Настройки" };
 
+/** Две первые буквы имени (если имени нет — почты): «Иван» -> «ИВ». */
+function initials(name?: string, email?: string): string {
+  const letters = (text?: string) =>
+    Array.from(text ?? "")
+      .filter((ch) => /[\p{L}\p{N}]/u.test(ch))
+      .slice(0, 2)
+      .join("");
+  return (letters(name) || letters(email) || "?").toUpperCase();
+}
+
+/** Круглый аватар (кнопка, открывает настройки) и имя рядом: имя — просто текст. */
+function UserChip({ name, email, active, onOpen }: { name?: string; email?: string; active: boolean; onOpen: () => void }) {
+  return (
+    <div className={active ? "user-chip active" : "user-chip"}>
+      <button type="button" className="avatar" aria-label="Настройки" title="Настройки" onClick={onOpen}>
+        {initials(name, email)}
+      </button>
+      <span className="user-chip-name" title={email}>
+        {name}
+      </span>
+    </div>
+  );
+}
+
 /**
  * Шапка с вкладками и сами вкладки. Все вкладки смонтированы сразу и просто скрываются:
  * так в «Чатах» не пропадают открытый чат и неотправленный текст при переключении.
  * «Настройки» открываются кликом по имени пользователя.
  *
  * На узком экране вкладки, имя и «Выйти» не помещаются в шапку, поэтому шапка такая: «☰» (разворачивает меню с вкладками
- * и «Выйти»), название текущей вкладки и имя пользователя, по которому открываются настройки (CSS переключает вид по ширине).
+ * и «Выйти»), название текущей вкладки и аватар с именем, по аватару открываются настройки (CSS переключает вид по ширине).
  */
 export default function Layout() {
   const { user, logout } = useAuth();
@@ -57,20 +81,13 @@ export default function Layout() {
           ))}
         </nav>
         <div className="user">
-          <button
-            type="button"
-            className={tab === "settings" ? "user-name active" : "user-name"}
-            title={user?.email}
-            onClick={() => go("settings")}
-          >
-            {user?.name}
-          </button>
+          <UserChip name={user?.name} email={user?.email} active={tab === "settings"} onOpen={() => go("settings")} />
           <button type="button" onClick={() => void logout()}>
             Выйти
           </button>
         </div>
 
-        {/* узкий экран: «☰» (меню), название текущей вкладки (не кнопка), имя пользователя (кнопка, ведёт в настройки) */}
+        {/* узкий экран: «☰» (меню), название текущей вкладки (не кнопка), аватар (кнопка, ведёт в настройки) и имя (просто текст) */}
         <button
           type="button"
           className="menu-toggle"
@@ -82,14 +99,9 @@ export default function Layout() {
           {menuOpen ? "✕" : "☰"}
         </button>
         <span className="mobile-title">{LABELS[tab]}</span>
-        <button
-          type="button"
-          className={tab === "settings" ? "mobile-user active" : "mobile-user"}
-          title={user?.email}
-          onClick={() => go("settings")}
-        >
-          {user?.name}
-        </button>
+        <div className="mobile-user">
+          <UserChip name={user?.name} email={user?.email} active={tab === "settings"} onOpen={() => go("settings")} />
+        </div>
 
         <nav id="app-menu" className="menu" hidden={!menuOpen}>
           {TABS.map((t) => (
