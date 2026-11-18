@@ -22,6 +22,10 @@ interface AuthState {
   login: (email: string, password: string, captchaToken?: string) => Promise<void>;
   logout: () => Promise<void>;
   finishReset: (newPassword: string) => Promise<void>;
+  /** Меняет имя на сервере и обновляет профиль в шапке. */
+  updateName: (name: string) => Promise<void>;
+  /** Удаляет аккаунт и возвращает на страницу входа. При ошибке (например, неверный пароль) бросает ApiError. */
+  deleteAccount: (password: string) => Promise<void>;
 }
 
 const Ctx = createContext<AuthState>(null!);
@@ -100,9 +104,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [resetParams, endSession],
   );
 
+  const updateName = useCallback<AuthState["updateName"]>(async (name) => {
+    setUser(await accountApi.updateName(name));
+  }, []);
+
+  const deleteAccount = useCallback<AuthState["deleteAccount"]>(
+    async (password) => {
+      await accountApi.deleteAccount(password);
+      endSession({ text: "Аккаунт удалён.", ok: true });
+    },
+    [endSession],
+  );
+
   const value = useMemo(
-    () => ({ status, user, notice, resetParams, login, logout, finishReset }),
-    [status, user, notice, resetParams, login, logout, finishReset],
+    () => ({ status, user, notice, resetParams, login, logout, finishReset, updateName, deleteAccount }),
+    [status, user, notice, resetParams, login, logout, finishReset, updateName, deleteAccount],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
 import type { MessageRole } from "../../types/chats";
 import AttachmentList, { formatSize } from "./AttachmentList";
+import { formatNumber } from "./format";
 import MessageContent from "./MessageContent";
 import { useChats } from "./useChats";
 import "./chats.css";
@@ -121,6 +122,11 @@ export default function Chats({ active }: { active: boolean }) {
   const chatTitle = isNewChat ? "Новый чат" : (c.chats.find((chat) => chat.id === c.chatId)?.title ?? "Чат");
   const shownError = attachError ?? c.error;
 
+  // израсходовано в этом чате: у каждого ответа свой запрос с полной историей, поэтому токены суммируются
+  const usedInput = c.messages.reduce((sum, m) => sum + (m.inputTokens ?? 0), 0);
+  const usedOutput = c.messages.reduce((sum, m) => sum + (m.outputTokens ?? 0), 0);
+  const usageLine = usedInput + usedOutput > 0 ? `токенов: ↑${formatNumber(usedInput)} ↓${formatNumber(usedOutput)}` : "";
+
   return (
     <div className="ch">
       <aside id="ch-sidebar" className="ch-sidebar" hidden={!sidebarOpen}>
@@ -187,7 +193,9 @@ export default function Chats({ active }: { active: boolean }) {
             <span>{sidebarOpen ? "Скрыть" : "Чаты"}</span>
           </button>
           <div className="ch-bar-title">
-            {modelName && <span className="ch-bar-model">{modelName}</span>}
+            {(modelName || usageLine) && (
+              <span className="ch-bar-model">{[modelName, usageLine].filter(Boolean).join(" · ")}</span>
+            )}
             <span className="ch-bar-chat">{chatTitle}</span>
           </div>
           <button
@@ -218,6 +226,11 @@ export default function Chats({ active }: { active: boolean }) {
               {m.content && <MessageContent text={m.content} markdown={m.role === "assistant"} />}
               {m.attachments && m.attachments.length > 0 && (
                 <AttachmentList chatId={c.chatId} messageId={m.id} attachments={m.attachments} />
+              )}
+              {m.role === "assistant" && m.inputTokens != null && (
+                <div className="ch-tokens" title="Токены запроса (вся история) и ответа">
+                  ↑ {formatNumber(m.inputTokens)} · ↓ {formatNumber(m.outputTokens ?? 0)} токенов
+                </div>
               )}
             </div>
           ))}

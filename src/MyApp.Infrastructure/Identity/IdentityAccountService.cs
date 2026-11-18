@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Encodings.Web;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Configuration;
@@ -67,6 +68,41 @@ public class IdentityAccountService(
         var user = await users.FindByIdAsync(currentUser.Id);
         if (user is not null)
             await users.UpdateSecurityStampAsync(user);
+    }
+
+    public async Task<UpdateNameResult> UpdateDisplayNameAsync(string displayName, CancellationToken ct)
+    {
+        if (!DisplayNameRules.TryNormalize(displayName, out var name))
+            return UpdateNameResult.Failure(DisplayNameRules.ErrorMessage);
+        if (!Regex.IsMatch(name, DisplayNameRules.Pattern))
+            return UpdateNameResult.Failure(DisplayNameRules.PatternMessage);
+
+        var user = await users.FindByIdAsync(currentUser.Id);
+        if (user is null)
+            return UpdateNameResult.Failure("Пользователь не найден.");
+
+        user.DisplayName = name;
+        var result = await users.UpdateAsync(user);
+        if (!result.Succeeded)
+            return UpdateNameResult.Failure(string.Join(" ", result.Errors.Select(e => e.Description)));
+
+        return UpdateNameResult.Success(new ProfileResponse(name, user.Email ?? ""));
+    }
+
+    public async Task<bool> VerifyPasswordAsync(string password, CancellationToken ct)
+    {
+        var user = await users.FindByIdAsync(currentUser.Id);
+        return user is not null && await users.CheckPasswordAsync(user, password);
+    }
+
+    public async Task<bool> DeleteAsync(CancellationToken ct)
+    {
+        var user = await users.FindByIdAsync(currentUser.Id);
+        if (user is null) return false;
+
+        // Задачи удаляются каскадом (внешний ключ Todos.UserId ... ON DELETE CASCADE).
+        var result = await users.DeleteAsync(user);
+        return result.Succeeded;
     }
 
     private static Dictionary<string, string[]> ToErrors(IdentityResult result)

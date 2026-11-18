@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "./features/auth/AuthContext";
 import Chats from "./features/chats/Chats";
 import Settings from "./features/settings/Settings";
@@ -13,22 +13,45 @@ const TABS: { id: Exclude<Tab, "settings">; label: string }[] = [
   { id: "chats", label: "Чаты" },
 ];
 
+const LABELS: Record<Tab, string> = { todos: "Задачи", stats: "Статистика", chats: "Чаты", settings: "Настройки" };
+
 /**
  * Шапка с вкладками и сами вкладки. Все вкладки смонтированы сразу и просто скрываются:
  * так в «Чатах» не пропадают открытый чат и неотправленный текст при переключении.
  * «Настройки» открываются кликом по имени пользователя.
+ *
+ * На узком экране вкладки, имя и «Выйти» не помещаются в шапку, поэтому вместо них показывается одна кнопка
+ * с названием текущей вкладки; по ней разворачивается меню (CSS переключает вид по ширине экрана).
  */
 export default function Layout() {
   const { user, logout } = useAuth();
   const [tab, setTab] = useState<Tab>("todos");
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const go = (next: Tab) => {
+    setTab(next);
+    setMenuOpen(false);
+  };
+
+  // Escape закрывает меню
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
 
   return (
     <div className="app">
       <header className="header">
         <span className="brand">Мои задачи</span>
+
+        {/* широкий экран */}
         <nav className="tabs">
           {TABS.map((t) => (
-            <button key={t.id} type="button" className={tab === t.id ? "tab active" : "tab"} onClick={() => setTab(t.id)}>
+            <button key={t.id} type="button" className={tab === t.id ? "tab active" : "tab"} onClick={() => go(t.id)}>
               {t.label}
             </button>
           ))}
@@ -38,7 +61,7 @@ export default function Layout() {
             type="button"
             className={tab === "settings" ? "user-name active" : "user-name"}
             title={user?.email}
-            onClick={() => setTab("settings")}
+            onClick={() => go("settings")}
           >
             {user?.name}
           </button>
@@ -46,6 +69,36 @@ export default function Layout() {
             Выйти
           </button>
         </div>
+
+        {/* узкий экран */}
+        <button
+          type="button"
+          className="menu-toggle"
+          aria-expanded={menuOpen}
+          aria-controls="app-menu"
+          onClick={() => setMenuOpen((open) => !open)}
+        >
+          <span aria-hidden="true">{menuOpen ? "✕" : "☰"}</span>
+          <span>{LABELS[tab]}</span>
+        </button>
+
+        <nav id="app-menu" className="menu" hidden={!menuOpen}>
+          {TABS.map((t) => (
+            <button key={t.id} type="button" className={tab === t.id ? "menu-item active" : "menu-item"} onClick={() => go(t.id)}>
+              {t.label}
+            </button>
+          ))}
+          <div className="menu-sep" role="separator" />
+          <button type="button" className={tab === "settings" ? "menu-item active" : "menu-item"} onClick={() => go("settings")}>
+            <span>Настройки</span>
+            <span className="menu-sub">{user?.name}</span>
+          </button>
+          <button type="button" className="menu-item" onClick={() => void logout()}>
+            Выйти
+          </button>
+        </nav>
+
+        {menuOpen && <div className="menu-backdrop" onClick={() => setMenuOpen(false)} />}
       </header>
 
       {/* вкладке «Чаты» нужна ширина: список чатов слева, переписка справа */}

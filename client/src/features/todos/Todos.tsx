@@ -45,7 +45,18 @@ export default function Todos() {
           />
         </div>
         <div className="td-row">
-          <input type="date" value={due} title="Срок" onChange={(e) => setDue(e.target.value)} />
+          <div className={due ? "td-date" : "td-date empty"}>
+            {/* на iPhone пустое поле даты вообще ничего не рисует: показываем свою подпись поверх */}
+            <span className="td-date-ph" aria-hidden="true">
+              Срок (необязательно)
+            </span>
+            <input type="date" value={due} aria-label="Срок" onChange={(e) => setDue(e.target.value)} />
+            {due && (
+              <button type="button" className="td-date-clear" aria-label="Убрать срок" onClick={() => setDue("")}>
+                ✕
+              </button>
+            )}
+          </div>
           <select value={priority} title="Приоритет" onChange={(e) => setPriority(e.target.value as Priority)}>
             <option value="low">Низкий</option>
             <option value="normal">Обычный</option>

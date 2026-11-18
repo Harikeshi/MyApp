@@ -1,4 +1,4 @@
-﻿using System.Net.Http.Headers;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using MyApp.Infrastructure.Identity;
 using MyApp.Infrastructure.Persistence; 
+using MyApp.Web.Services;
 
 namespace MyApp.Tests;
 
@@ -28,10 +29,16 @@ public class ApiFactory : WebApplicationFactory<Program>
             services.AddDbContext<AppDbContext>(o => o.UseSqlite(_conn));
             services.AddSingleton<CapturingEmailSender>();
             services.AddSingleton<IEmailSender<ApplicationUser>>(sp => sp.GetRequiredService<CapturingEmailSender>());
+
+            // в тестах AiChat не запущен: очистку его данных подменяем заглушкой
+            services.AddSingleton<FakeChatDataCleaner>();
+            services.AddSingleton<IChatDataCleaner>(sp => sp.GetRequiredService<FakeChatDataCleaner>());
         });
     }
 
     public CapturingEmailSender Emails => Services.GetRequiredService<CapturingEmailSender>();
+
+    public FakeChatDataCleaner ChatCleaner => Services.GetRequiredService<FakeChatDataCleaner>();
 
     public const string DefaultPassword = "Test123!xyz";
 
@@ -81,6 +88,18 @@ public class ApiFactory : WebApplicationFactory<Program>
     }
 
     public record LoginTokens(string AccessToken, string RefreshToken);
+
+    public class FakeChatDataCleaner : IChatDataCleaner
+    {
+        public int Calls { get; private set; }
+        public bool Result { get; set; } = true;
+
+        public Task<bool> DeleteAllAsync(CancellationToken ct)
+        {
+            Calls++;
+            return Task.FromResult(Result);
+        }
+    }
 
     public class CapturingEmailSender : IEmailSender<ApplicationUser>
     {

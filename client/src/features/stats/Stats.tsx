@@ -1,7 +1,10 @@
+import { useState } from "react";
 import type { TodoStats } from "../../api/todos";
+import ChatStats from "./ChatStats";
 import { useStats } from "./useStats";
 import "./stats.css";
 
+type Mode = "todos" | "chats";
 type PriorityRow = { key: "high" | "normal" | "low"; label: string; count: number };
 
 const priorityRows = (s: TodoStats): PriorityRow[] => [
@@ -10,7 +13,27 @@ const priorityRows = (s: TodoStats): PriorityRow[] => [
   { key: "low", label: "Низкий", count: s.lowPriorityOpen },
 ];
 
+/** Статистика: переключатель между задачами и расходом токенов в чатах. Данные грузятся при каждом открытии вкладки. */
 export default function Stats({ active }: { active: boolean }) {
+  const [mode, setMode] = useState<Mode>("todos");
+
+  return (
+    <div className="st">
+      <div className="st-switch" role="group" aria-label="Раздел статистики">
+        <button type="button" className={mode === "todos" ? "on" : ""} aria-pressed={mode === "todos"} onClick={() => setMode("todos")}>
+          Задачи
+        </button>
+        <button type="button" className={mode === "chats" ? "on" : ""} aria-pressed={mode === "chats"} onClick={() => setMode("chats")}>
+          Чаты (токены)
+        </button>
+      </div>
+
+      {mode === "todos" ? <TodoStatsView active={active} /> : <ChatStats active={active} />}
+    </div>
+  );
+}
+
+function TodoStatsView({ active }: { active: boolean }) {
   const { stats, error } = useStats(active);
 
   if (error) return <p className="st-error">{error}</p>;
@@ -21,7 +44,7 @@ export default function Stats({ active }: { active: boolean }) {
   const maxCount = Math.max(1, ...rows.map((r) => r.count));
 
   return (
-    <div className="st">
+    <>
       <div className="st-cards">
         <Card value={stats.total} label="всего" />
         <Card value={stats.done} label="выполнено" />
@@ -40,7 +63,7 @@ export default function Stats({ active }: { active: boolean }) {
           <span>{count}</span>
         </div>
       ))}
-    </div>
+    </>
   );
 }
 

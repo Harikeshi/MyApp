@@ -13,3 +13,42 @@
 .st-row { display: flex; align-items: center; gap: 12px; margin: 6px 0; }
 .st-row > span:first-child { width: 80px; }
 .st-row > span:last-child { width: 28px; text-align: right; }
+
+/* ---------- переключатели (Задачи / Чаты, период, метрика) ---------- */
+.st-switch { display: inline-flex; margin: 0 0 12px; border: 1px solid #e3e6eb; border-radius: 8px; overflow: hidden; background: #fff; }
+.st-switch button { padding: 8px 14px; border: 0; border-radius: 0; background: #fff; color: #667085; }
+.st-switch button + button { border-left: 1px solid #e3e6eb; }
+.st-switch button.on { background: #2457d6; color: #fff; }
+.st-switch.small button { padding: 5px 10px; font-size: .85rem; }
+
+/* ---------- токены по чатам ---------- */
+.tk-controls { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.tk-loading { opacity: .6; transition: opacity .15s; }
+.tk-hint { margin: 6px 0 0; font-size: .8rem; }
+
+.tk-chart-wrap { position: relative; padding-top: 16px; }
+.tk-max { position: absolute; top: 0; left: 0; font-size: .75rem; color: #667085; }
+.tk-chart { display: flex; align-items: flex-end; gap: 2px; height: 160px; border-bottom: 1px solid #e3e6eb; }
+.tk-day {
+  flex: 1 1 0; min-width: 0; height: 100%; padding: 0; border: 0; border-radius: 3px 3px 0 0; background: transparent;
+  display: flex; flex-direction: column-reverse; cursor: pointer;
+}
+.tk-day:hover, .tk-day.on { background: #eef3ff; }
+.tk-seg { display: block; width: 100%; min-height: 0; }
+.tk-axis { display: flex; gap: 2px; margin-top: 4px; }
+.tk-axis span { flex: 1 1 0; min-width: 0; display: flex; justify-content: center; font-size: .7rem; color: #667085; white-space: nowrap; }
+
+.tk-detail { margin-top: 12px; padding: 10px 12px; border: 1px solid #e3e6eb; border-radius: 8px; display: grid; gap: 6px; }
+.tk-detail-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: .9rem; }
+.tk-detail-row i, .tk-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.tk-dot { margin-right: 6px; }
+.tk-detail-name { font-weight: 600; }
+
+.tk-scroll { overflow-x: auto; }
+.tk-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.tk-table th, .tk-table td { padding: 6px 10px; border-bottom: 1px solid #e3e6eb; text-align: right; white-space: nowrap; }
+.tk-table th:first-child, .tk-table td:first-child { text-align: left; }
+.tk-table th { color: #667085; font-weight: 500; }
+
+.tk-details { margin-top: 16px; }
+.tk-details summary { cursor: pointer; color: #2457d6; }

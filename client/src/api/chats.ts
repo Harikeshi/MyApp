@@ -1,5 +1,5 @@
 import { downloadFile, getJson, postForm, postJson } from "./http";
-import type { AiModel, Attachment, Chat, SendMessageResult, ChatMessage } from "../types/chats";
+import type { AiModel, Attachment, Chat, SendMessageResult, ChatMessage, TokenStats } from "../types/chats";
 
 /** Имя файла без каталогов: модель может вернуть путь вида "src/Program.cs". */
 const baseName = (path: string) => path.split("/").pop() || "file";
@@ -26,6 +26,10 @@ export const chatsApi = {
     for (const file of files) form.append("files", file, file.name);
     return postForm<SendMessageResult>(url, form);
   },
+
+  /** Расход токенов по дням и моделям. Смещение пояса нужно, чтобы границы дней совпали с местными. */
+  getTokenStats: (days: number, signal?: AbortSignal) =>
+    getJson<TokenStats>(`/api/stats/tokens?days=${days}&tzOffset=${new Date().getTimezoneOffset()}`, signal),
 
   downloadAttachment: (chatId: string, attachment: Attachment) =>
     downloadFile(`/api/chats/${chatId}/attachments/${attachment.id}`, baseName(attachment.fileName)),

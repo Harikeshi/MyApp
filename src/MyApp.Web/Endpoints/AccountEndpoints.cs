@@ -2,6 +2,7 @@ using MyApp.Application.Accounts;
 using MyApp.Infrastructure.Identity;
 using MyApp.Web.Models;
 using MyApp.Web.Security;
+using MyApp.Web.Services;
 
 namespace MyApp.Web.Endpoints;
 
@@ -52,6 +53,36 @@ public static class AccountEndpoints
             return profile is null ? Results.Unauthorized() : Results.Ok(profile);
         })
         .RequireAuthorization();
+
+        // смена имени (возвращает обновлённый профиль)
+        app.MapPut("/account/name", async (UpdateNameRequest req, IAccountService accounts, CancellationToken ct) =>
+        {
+            var result = await accounts.UpdateDisplayNameAsync(req.DisplayName, ct);
+            return result.Succeeded
+                ? Results.Ok(result.Profile)
+                : Results.ValidationProblem(new Dictionary<string, string[]> { ["DisplayName"] = [result.Error!] });
+        })
+        .RequireAuthorization();
+
+        // удаление аккаунта: пароль обязателен; сначала чистим данные чатов в AiChat, потом удаляем пользователя.
+        // Неверный пароль отдаём как 400, а не 401: клиент на 401 завершает сессию.
+        app.MapPost("/account/delete", async (
+            DeleteAccountRequest req, IAccountService accounts, IChatDataCleaner chats, CancellationToken ct) =>
+        {
+            if (!await accounts.VerifyPasswordAsync(req.Password, ct))
+                return Results.BadRequest(new { error = "Неверный пароль." });
+
+            if (!await chats.DeleteAllAsync(ct))
+                return Results.Problem(
+                    detail: "Не удалось удалить данные чатов. Аккаунт не тронут, попробуйте ещё раз позже.",
+                    statusCode: StatusCodes.Status503ServiceUnavailable);
+
+            return await accounts.DeleteAsync(ct)
+                ? Results.NoContent()
+                : Results.Problem(detail: "Не удалось удалить аккаунт.", statusCode: StatusCodes.Status500InternalServerError);
+        })
+        .RequireAuthorization()
+        .RequireRateLimiting("auth");
 
         // выход: отзывает refresh-токены
         app.MapPost("/logout", async (IAccountService accounts, CancellationToken ct) =>

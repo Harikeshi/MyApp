@@ -59,21 +59,40 @@ a { color: var(--accent); }
 :where(.td, .ch) button:hover:not(:disabled) { background: #f4f6fa; }
 :where(.td, .ch) button:disabled { opacity: .5; cursor: default; }
 
+/* ---------- узкий экран: вкладки, имя и «Выйти» прячутся в раскрывающееся меню ---------- */
+.menu-toggle, .menu, .menu-backdrop { display: none; }
+
+@media (max-width: 768px) {
+  .header { position: sticky; top: 0; z-index: 30; gap: 8px; padding: 0 8px; }
+  .brand, .tabs, .user { display: none; }
+
+  .menu-toggle {
+    display: flex; align-items: center; gap: 8px; max-width: 100%; padding: 8px 12px;
+    border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--text); font-weight: 600;
+  }
+  .menu {
+    display: flex; flex-direction: column; position: absolute; top: 100%; left: 0; right: 0; z-index: 50;
+    padding: 6px 8px 10px; background: var(--surface); border-bottom: 1px solid var(--line);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, .12);
+  }
+  .menu-item {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 12px; width: 100%; padding: 12px 10px;
+    border: 0; border-radius: 6px; background: none; color: var(--text); text-align: left;
+  }
+  .menu-item:hover { background: #f4f6fa; }
+  .menu-item.active { color: var(--accent); background: #eef3ff; font-weight: 600; }
+  .menu-sub { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: .85rem; font-weight: 400; }
+  .menu-sep { height: 1px; margin: 6px 0; background: var(--line); }
+  /* затемнение под шапкой: тап по нему закрывает меню */
+  .menu-backdrop { display: block; position: fixed; inset: 56px 0 0 0; z-index: 40; background: rgba(0, 0, 0, .25); }
+}
+
 /* Чаты на планшете и телефоне: окно переписки занимает весь экран под шапкой (без отступов страницы) */
 @media (max-width: 720px) {
   .content.chats { padding: 0; }
 }
 
 @media (max-width: 600px) {
-  .header { gap: 6px; padding: 0 8px; }
-  .brand { display: none; }
-  /* вкладки при нехватке места прокручиваются, а не раздвигают страницу вширь */
-  .tabs { min-width: 0; overflow-x: auto; scrollbar-width: none; }
-  .tabs::-webkit-scrollbar { display: none; }
-  .tab { flex: none; padding: 0 10px; white-space: nowrap; }
-  .user { flex: none; gap: 4px; }
-  .user .user-name { max-width: 56px; }
-  .user button { padding: 6px 8px; }
   .content { padding: 16px 10px; }
   .content.chats { padding: 0; }
   .panel { padding: 12px; }

@@ -1,0 +1,25 @@
+/* Вкладка «Настройки». Цвета берутся из переменных styles.css; .error и .success тоже оттуда. */
+.se h2 { margin: 0 0 12px; }
+.se-section { margin: 0 0 24px; }
+.se-section h3 { margin: 0 0 8px; font-size: 1.05rem; }
+.se-section p { margin: 0 0 10px; }
+.se-email { overflow-wrap: anywhere; }
+
+.se-form { display: grid; gap: 10px; max-width: 360px; }
+.se-form label { display: grid; gap: 4px; font-size: .9rem; color: var(--muted); }
+.se-form input { width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--text); }
+.se-form p { margin: 0; }
+
+.se-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.se-btn { padding: 9px 14px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--text); }
+.se-btn:hover:not(:disabled) { background: #f4f6fa; }
+.se-btn:disabled { opacity: .5; cursor: default; }
+.se-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.se-btn.primary:hover:not(:disabled) { background: #1d47b3; }
+.se-btn.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+.se-btn.danger:hover:not(:disabled) { background: #a61f1f; }
+.se-btn.danger-outline { border-color: var(--danger); color: var(--danger); }
+.se-btn.danger-outline:hover:not(:disabled) { background: #fdeaea; }
+
+.se-danger { margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--line); }
+.se-danger h3 { color: var(--danger); }

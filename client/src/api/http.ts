@@ -95,6 +95,6 @@ export async function downloadFile(path: string, fileName: string): Promise<void
   setTimeout(() => URL.revokeObjectURL(url), 10_000); // браузеру нужно время, чтобы начать загрузку
 }
 
-export const putJson = (path: string, body: unknown) => request<void>("PUT", path, body);
+export const putJson = <T = void>(path: string, body: unknown) => request<T>("PUT", path, body);
 
 export const deleteJson = (path: string) => request<void>("DELETE", path);

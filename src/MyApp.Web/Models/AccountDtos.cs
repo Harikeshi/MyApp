@@ -12,11 +12,23 @@ public record RegisterRequest
     public string Password { get; init; } = "";
 
     [Required(ErrorMessage = "Введите имя пользователя")]
-    [StringLength(DisplayNameRules.MaxLength, MinimumLength = DisplayNameRules.MinLength,
-        ErrorMessage = DisplayNameRules.ErrorMessage)]
-    [RegularExpression(@"^[\p{L}\p{N}][\p{L}\p{N} ._-]*$",
-        ErrorMessage = "В имени допустимы буквы, цифры, пробел и символы . _ -")]
+    [StringLength(DisplayNameRules.MaxLength, MinimumLength = DisplayNameRules.MinLength, ErrorMessage = DisplayNameRules.ErrorMessage)]
+    [RegularExpression(DisplayNameRules.Pattern, ErrorMessage = DisplayNameRules.PatternMessage)]
     public string DisplayName { get; init; } = "";
+}
+
+public record UpdateNameRequest
+{
+    [Required(ErrorMessage = "Введите имя пользователя")]
+    [StringLength(DisplayNameRules.MaxLength, MinimumLength = DisplayNameRules.MinLength, ErrorMessage = DisplayNameRules.ErrorMessage)]
+    [RegularExpression(DisplayNameRules.Pattern, ErrorMessage = DisplayNameRules.PatternMessage)]
+    public string DisplayName { get; init; } = "";
+}
+
+public record DeleteAccountRequest
+{
+    [Required(ErrorMessage = "Введите пароль")]
+    public string Password { get; init; } = "";
 }
 
 public record ForgotRequest(string Email);

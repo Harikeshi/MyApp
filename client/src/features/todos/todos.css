@@ -3,6 +3,23 @@
 .td-row { display: flex; align-items: center; gap: 8px; margin: 10px 0; flex-wrap: wrap; }
 .td-row input[type="text"] { flex: 1; min-width: 0; }
 
+/* Поле срока. На мобильных (особенно iOS Safari) пустой <input type="date"> рисуется пустым и без высоты,
+   пока на него не нажмёшь: задаём размеры и показываем свою подпись, пока дата не выбрана. */
+.td-date { position: relative; flex: 1 1 170px; min-width: 150px; }
+.td-date input[type="date"] {
+  display: block; width: 100%; min-height: 40px; box-sizing: border-box;
+  -webkit-appearance: none; appearance: none; font: inherit; color: var(--text);
+}
+.td-date.empty input[type="date"]:not(:focus) { color: transparent; }
+.td-date.empty input[type="date"]:not(:focus)::-webkit-datetime-edit { color: transparent; }
+.td-date-ph {
+  position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+  color: var(--muted); pointer-events: none; white-space: nowrap;
+}
+.td-date.empty:focus-within .td-date-ph { display: none; }
+.td-date-clear { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); padding: 4px 8px; border: 0; background: none; color: var(--muted); }
+.td-row select { flex: 1 1 120px; min-width: 0; min-height: 40px; }
+
 .td-error { margin: 8px 0; color: var(--danger); }
 .td-muted { margin: 8px 0; color: var(--muted); }
 

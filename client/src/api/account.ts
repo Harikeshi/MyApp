@@ -1,6 +1,6 @@
 // Вход, регистрация и сброс пароля. Эти запросы идут без токена (кроме /me и /logout),
 // поэтому не через http.ts: ошибки здесь разбираются по-своему (коды Identity и captcha).
-import { ApiError, getJson } from "./http";
+import { ApiError, getJson, postJson, putJson } from "./http";
 import { getToken } from "./session";
 
 export interface Profile {
@@ -101,6 +101,15 @@ export async function resetPassword(params: ResetParams, newPassword: string): P
 }
 
 export const fetchProfile = (signal?: AbortSignal) => getJson<Profile>("/me", signal);
+
+/** Меняет имя; сервер возвращает обновлённый профиль. */
+export const updateName = (displayName: string) => putJson<Profile>("/account/name", { displayName });
+
+/**
+ * Удаляет аккаунт, задачи и данные чатов. Нужен пароль. Неверный пароль сервер отдаёт как 400 (не 401),
+ * иначе клиент решил бы, что сессия закончилась.
+ */
+export const deleteAccount = (password: string) => postJson<void>("/account/delete", { password });
 
 /** Выход на сервере (отзывает refresh-токены). Ошибки не важны: клиент выходит в любом случае. */
 export async function logoutRequest(): Promise<void> {

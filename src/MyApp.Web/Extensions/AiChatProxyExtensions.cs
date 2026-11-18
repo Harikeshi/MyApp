@@ -1,4 +1,5 @@
 using Yarp.ReverseProxy.Configuration;
+using MyApp.Web.Services;
 using Yarp.ReverseProxy.Forwarder;
 
 namespace MyApp.Web.Extensions;
@@ -38,6 +39,13 @@ public static class AiChatProxyExtensions
                     HttpRequest = new ForwarderRequestConfig { ActivityTimeout = TimeSpan.FromMinutes(10) }
                 }
             ]);
+
+        // удаление данных пользователя при удалении аккаунта (прямой вызов AiChat, не через прокси)
+        services.AddHttpClient<IChatDataCleaner, AiChatDataCleaner>(client =>
+        {
+            client.BaseAddress = new Uri(address.TrimEnd('/') + "/");
+            client.Timeout = TimeSpan.FromSeconds(60);
+        });
 
         return services;
     }
