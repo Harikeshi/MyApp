@@ -189,7 +189,7 @@ export default function Chats({ active }: { active: boolean }) {
             aria-controls="ch-sidebar"
             onClick={() => setSidebarOpen((open) => !open)}
           >
-            <span aria-hidden="true">{sidebarOpen ? ">" : "<"}</span>
+            <span aria-hidden="true">{sidebarOpen ? "<" : ">"}</span>
             {/* <span>{sidebarOpen ? "Скрыть" : "Чаты"}</span> */}
           </button>
           <div className="ch-bar-title">
