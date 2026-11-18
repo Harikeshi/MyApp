@@ -189,8 +189,8 @@ export default function Chats({ active }: { active: boolean }) {
             aria-controls="ch-sidebar"
             onClick={() => setSidebarOpen((open) => !open)}
           >
-            <span aria-hidden="true">{sidebarOpen ? "✕" : "☰"}</span>
-            <span>{sidebarOpen ? "Скрыть" : "Чаты"}</span>
+            <span aria-hidden="true">{sidebarOpen ? ">" : "<"}</span>/* ☰ */
+            {/* <span>{sidebarOpen ? "Скрыть" : "Чаты"}</span> */}
           </button>
           <div className="ch-bar-title">
             {(modelName || usageLine) && (
@@ -277,7 +277,7 @@ export default function Chats({ active }: { active: boolean }) {
             rows={1}
             value={draft}
             disabled={!c.modelId}
-            placeholder="Сообщение (Enter — отправить, Shift+Enter — новая строка)"
+            placeholder="Сообщение"
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={onKeyDown}
           />
