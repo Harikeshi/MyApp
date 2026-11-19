@@ -11,8 +11,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     : IdentityDbContext<ApplicationUser>(options), IUnitOfWork
 {
     public DbSet<TodoItem> Todos => Set<TodoItem>();
-    public DbSet<NewsItem> News => Set<NewsItem>();
+    public DbSet<NewsItem> NewsItems => Set<NewsItem>();
     public DbSet<NewsComment> NewsComments => Set<NewsComment>();
+    public DbSet<NewsSource> NewsSources => Set<NewsSource>();
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);

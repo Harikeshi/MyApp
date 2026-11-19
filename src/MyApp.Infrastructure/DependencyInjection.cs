@@ -9,6 +9,7 @@ using MyApp.Infrastructure.Captcha;
 using MyApp.Infrastructure.Email;
 using MyApp.Infrastructure.Identity;
 using MyApp.Infrastructure.Persistence;
+using MyApp.Infrastructure.News;
 
 namespace MyApp.Infrastructure;
 
@@ -63,6 +64,14 @@ public static class DependencyInjection
         // Регистрируется ПОСЛЕ AddIdentityApiEndpoints, чтобы заменить стандартный отправитель.
         services.AddSingleton<IEmailSender<ApplicationUser>, IdentityEmailSender>();
 
+        // ! NEWS
+        services.AddHttpClient("news", c =>
+        {
+            c.Timeout = TimeSpan.FromSeconds(20);
+            c.DefaultRequestHeaders.UserAgent.ParseAdd("MyAppNewsBot/1.0 (+https://sshch.online)");
+        });
+        services.AddHostedService<NewsPollingService>();
+        
         // ---------- проверки состояния ----------
         var health = services.AddHealthChecks()
             .AddDbContextCheck<AppDbContext>("database", tags: ["ready"]);
