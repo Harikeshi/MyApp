@@ -122,20 +122,20 @@ export default function Layout() {
 
       {/* вкладке «Чаты» нужна ширина: список чатов слева, переписка справа */}
       <main className={tab === "chats" ? "content wide chats" : "content"}>
+        <section className="panel" hidden={tab !== "todos"}>
+          <Todos />
+        </section>
+        <section className="panel" hidden={tab !== "stats"}>
+          <Stats active={tab === "stats"} />
+        </section>
+        <section hidden={tab !== "chats"}>
+          <Chats active={tab === "chats"} />
+        </section>
         <section className="panel" hidden={tab !== "news"}>
           <News active={tab === "news"} />
         </section>
-        <section className="panel" hidden={tab !== "todos"}>
-          <Todos />
-        </section>       
-        <section hidden={tab !== "chats"}>
-          <Chats active={tab === "chats"} />
-        </section>    
-         <section className="panel" hidden={tab !== "stats"}>
-          <Stats active={tab === "stats"} />
-        </section>    
         <section className="panel" hidden={tab !== "settings"}>
-          <Settings />          
+          <Settings />
         </section>
       </main>
     </div>

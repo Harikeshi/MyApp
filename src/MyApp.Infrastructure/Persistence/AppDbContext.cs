@@ -15,6 +15,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<NewsItem> News => Set<NewsItem>();
     public DbSet<NewsComment> NewsComments => Set<NewsComment>();
     public DbSet<NewsCommentReport> NewsCommentReports => Set<NewsCommentReport>();
+    public DbSet<NewsTranslation> NewsTranslations => Set<NewsTranslation>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

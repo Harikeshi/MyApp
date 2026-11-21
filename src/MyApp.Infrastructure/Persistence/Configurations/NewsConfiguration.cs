@@ -72,3 +72,20 @@ public class NewsCommentReportConfiguration : IEntityTypeConfiguration<NewsComme
         b.HasIndex(x => new { x.CommentId, x.UserId }).IsUnique();   // одна жалоба от пользователя
     }
 }
+
+public class NewsTranslationConfiguration : IEntityTypeConfiguration<NewsTranslation>
+{
+    public void Configure(EntityTypeBuilder<NewsTranslation> b)
+    {
+        b.Property(x => x.Lang).HasMaxLength(8);
+        b.Property(x => x.Title).HasMaxLength(1000);
+        b.Property(x => x.Summary).HasMaxLength(5000);
+        b.Property(x => x.Model).HasMaxLength(100);
+
+        b.HasOne<NewsItem>().WithMany()
+            .HasForeignKey(x => x.NewsItemId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        b.HasIndex(x => new { x.NewsItemId, x.Lang }).IsUnique();   // один перевод на язык
+    }
+}

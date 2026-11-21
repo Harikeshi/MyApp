@@ -328,6 +328,47 @@ namespace MyApp.Infrastructure.Migrations
                     b.ToTable("NewsSources");
                 });
 
+            modelBuilder.Entity("MyApp.Domain.News.NewsTranslation", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Lang")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<long>("NewsItemId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Summary")
+                        .HasMaxLength(5000)
+                        .HasColumnType("character varying(5000)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NewsItemId", "Lang")
+                        .IsUnique();
+
+                    b.ToTable("NewsTranslations");
+                });
+
             modelBuilder.Entity("MyApp.Domain.Todos.TodoItem", b =>
                 {
                     b.Property<int>("Id")
@@ -521,6 +562,15 @@ namespace MyApp.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Source");
+                });
+
+            modelBuilder.Entity("MyApp.Domain.News.NewsTranslation", b =>
+                {
+                    b.HasOne("MyApp.Domain.News.NewsItem", null)
+                        .WithMany()
+                        .HasForeignKey("NewsItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("MyApp.Domain.Todos.TodoItem", b =>

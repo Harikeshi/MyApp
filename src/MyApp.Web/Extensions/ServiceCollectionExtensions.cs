@@ -92,6 +92,22 @@ public static class ServiceCollectionExtensions
                     });
             });
 
+            // перевод новостей (каждый новый перевод это платный запрос к модели); лимит на IP
+            o.AddPolicy("news-translate", http =>
+            {
+                var limit = http.RequestServices.GetRequiredService<IConfiguration>()
+                    .GetValue("RateLimit:NewsTranslatePerMinute", 10);
+
+                return RateLimitPartition.GetFixedWindowLimiter(
+                    http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = limit,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueLimit = 0
+                    });
+            });
+
             o.OnRejected = (ctx, ct) =>
             {
                 var log = ctx.HttpContext.RequestServices

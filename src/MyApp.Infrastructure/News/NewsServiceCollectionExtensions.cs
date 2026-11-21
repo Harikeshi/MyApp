@@ -2,6 +2,7 @@ using System.Net;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using MyApp.Application.Abstractions;
 
 namespace MyApp.Infrastructure.News;
 
@@ -31,6 +32,25 @@ public static class NewsServiceCollectionExtensions
                 MaxAutomaticRedirections = 5,
                 PooledConnectionLifetime = TimeSpan.FromMinutes(5)
             });
+
+        // Перевод по кнопке. Регистрируется и в Testing: NewsService зависит от INewsTranslator.
+        services.AddOptions<TranslationOptions>()
+            .BindConfiguration(TranslationOptions.SectionName)
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        services.AddHttpClient<INewsTranslator, ClaudeNewsTranslator>((sp, c) =>
+        {
+            var o = sp.GetRequiredService<IOptions<TranslationOptions>>().Value;
+            c.BaseAddress = new Uri(o.BaseUrl.TrimEnd('/') + "/");
+            c.Timeout = TimeSpan.FromSeconds(o.TimeoutSeconds);
+            c.DefaultRequestHeaders.Add("anthropic-version", "2023-06-01");
+            if (!string.IsNullOrWhiteSpace(o.ApiKey))
+            {
+                if (o.UseBearerAuth) c.DefaultRequestHeaders.Authorization = new("Bearer", o.ApiKey);
+                else c.DefaultRequestHeaders.Add("x-api-key", o.ApiKey);
+            }
+        });
 
         if (env.IsEnvironment("Testing")) return services;
 

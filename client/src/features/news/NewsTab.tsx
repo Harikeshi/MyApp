@@ -7,6 +7,7 @@ const FILTERS: { value: TopicFilter; label: string }[] = [
   { value: "all", label: "Все" },
   { value: "markets", label: "Рынки" },
   { value: "crypto", label: "Крипта" },
+  { value: "manuls", label: "Манулы" },
 ];
 
 const time = (d: Date) => d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });

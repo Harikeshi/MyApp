@@ -13,7 +13,7 @@ public class NewsRepository(AppDbContext db) : INewsRepository
     public static bool IsUniqueViolation(DbUpdateException ex) =>
         ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation };
 
-    public async Task<NewsPageResponse> ListAsync(NewsTopic? topic, NewsCursor? cursor, int limit, CancellationToken ct)
+    public async Task<NewsPageResponse> ListAsync(NewsTopic? topic, NewsCursor? cursor, int limit, string lang, CancellationToken ct)
     {
         IQueryable<NewsItem> query = db.News.AsNoTracking();
 
@@ -41,9 +41,14 @@ public class NewsRepository(AppDbContext db) : INewsRepository
             .Select(g => new { Id = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.Id, x => x.Count, ct);
 
+        var translations = await db.NewsTranslations.AsNoTracking()
+            .Where(t => ids.Contains(t.NewsItemId) && t.Lang == lang)
+            .ToDictionaryAsync(t => t.NewsItemId, t => new TranslationResponse(t.Title, t.Summary), ct);
+
         var items = rows.Select(r => new NewsItemResponse(
             r.Id, r.SourceName, r.Topic, r.Title, r.Url, r.Summary, r.ImageUrl, r.PublishedAt,
-            counts.GetValueOrDefault(r.Id))).ToList();
+            counts.GetValueOrDefault(r.Id),
+            translations.GetValueOrDefault(r.Id))).ToList();
 
         var next = hasMore && rows.Count > 0
             ? new NewsCursor(rows[^1].PublishedAt, rows[^1].Id).Encode()
@@ -54,6 +59,34 @@ public class NewsRepository(AppDbContext db) : INewsRepository
 
     public Task<bool> ExistsAsync(long newsId, CancellationToken ct) =>
         db.News.AnyAsync(n => n.Id == newsId, ct);
+
+    public Task<NewsItem?> FindAsync(long newsId, CancellationToken ct) =>
+        db.News.AsNoTracking().FirstOrDefaultAsync(n => n.Id == newsId, ct);
+
+    public Task<TranslationResponse?> GetTranslationAsync(long newsId, string lang, CancellationToken ct) =>
+        db.NewsTranslations.AsNoTracking()
+            .Where(t => t.NewsItemId == newsId && t.Lang == lang)
+            .Select(t => new TranslationResponse(t.Title, t.Summary))
+            .FirstOrDefaultAsync(ct);
+
+    public Task<int> CountTranslationsSinceAsync(DateTimeOffset since, CancellationToken ct) =>
+        db.NewsTranslations.CountAsync(t => t.CreatedAt >= since, ct);
+
+    public async Task<TranslationResponse> SaveTranslationAsync(NewsTranslation translation, CancellationToken ct)
+    {
+        db.NewsTranslations.Add(translation);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+            return new TranslationResponse(translation.Title, translation.Summary);
+        }
+        catch (DbUpdateException ex) when (IsUniqueViolation(ex))
+        {
+            // Другой пользователь успел перевести эту же новость: отдаём то, что уже лежит в базе.
+            db.Entry(translation).State = EntityState.Detached;
+            return (await GetTranslationAsync(translation.NewsItemId, translation.Lang, ct))!;
+        }
+    }
 
     public async Task<IReadOnlyList<CommentResponse>> ListCommentsAsync(long newsId, string currentUserId, CancellationToken ct)
     {

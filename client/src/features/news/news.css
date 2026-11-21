@@ -25,6 +25,7 @@
 .news-badge { padding: 1px 8px; border-radius: 999px; font-size: .78rem; font-weight: 600; }
 .news-badge.markets { background: #eef3ff; color: var(--accent); }
 .news-badge.crypto { background: #fff4e0; color: #9a5b00; }
+.news-badge.manuls { background: #eaf6ec; color: #2d7a3e; }
 
 .news-title { margin: 6px 0; font-size: 1.05rem; line-height: 1.35; overflow-wrap: anywhere; }
 .news-title a { color: var(--text); text-decoration: none; }

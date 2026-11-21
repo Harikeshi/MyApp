@@ -1,5 +1,5 @@
 // Темы приходят в camelCase (так настроен JSON в приложении).
-export type NewsTopic = "markets" | "crypto";
+export type NewsTopic = "markets" | "crypto" | "manuls";
 export type TopicFilter = "all" | NewsTopic;
 
 export interface Translation {

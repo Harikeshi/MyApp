@@ -12,7 +12,8 @@ public static class NewsEndpoints
         var news = app.MapGroup("/news").RequireAuthorization();
 
         // GET /news?topic=crypto|markets&cursor=...&limit=20 -> { items, nextCursor }
-        /// topic приходит строкой и разбирается без учёта регистра: встроенный биндинг enum не принимает "markets".
+        // Без topic приходят все темы; nextCursor передаётся в следующий запрос (null: новостей больше нет).
+        // topic приходит строкой и разбирается без учёта регистра: встроенный биндинг enum не принимает "markets".
         news.MapGet("/", async (string? topic, string? cursor, int? limit, NewsService service, CancellationToken ct) =>
         {
             NewsTopic? parsed = null;
@@ -46,6 +47,24 @@ public static class NewsEndpoints
                 };
             })
             .RequireRateLimiting("news-comments");
+
+        // Перевод по кнопке: первый запрос переводит и сохраняет, дальше перевод берётся из базы.
+        news.MapPost("/{id:long}/translation", async (long id, NewsService service, CancellationToken ct) =>
+            {
+                var result = await service.TranslateAsync(id, ct);
+                return result.Status switch
+                {
+                    TranslationStatus.Ok => Results.Ok(result.Translation),
+                    TranslationStatus.NotFound => Results.NotFound(),
+                    TranslationStatus.LimitReached => Results.Problem(
+                        detail: "Суточный лимит переводов исчерпан, попробуйте завтра.",
+                        statusCode: StatusCodes.Status429TooManyRequests),
+                    _ => Results.Problem(
+                        detail: "Перевод временно недоступен.",
+                        statusCode: StatusCodes.Status503ServiceUnavailable)
+                };
+            })
+            .RequireRateLimiting("news-translate");
 
         // Удалить можно только свой комментарий.
         news.MapDelete("/comments/{commentId:long}", async (long commentId, NewsService service, CancellationToken ct) =>

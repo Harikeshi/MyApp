@@ -23,8 +23,9 @@ public sealed class NewsOptions
     [Range(1, 500)]
     public int MaxItemsPerFeed { get; set; } = 100;
 
+    /// <summary>Сколько символов описания хранить. Клиент сам сворачивает длинное описание до превью.</summary>
     [Range(100, 5000)]
-    public int SummaryMaxLength { get; set; } = 500;
+    public int SummaryMaxLength { get; set; } = 5000;
 
     /// <summary>User-Agent бота; лучше с контактом: "MyAppNewsBot/1.0 (+https://ваш-домен)".</summary>
     [Required]

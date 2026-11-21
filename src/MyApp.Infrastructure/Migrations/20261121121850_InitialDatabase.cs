@@ -260,6 +260,30 @@ namespace MyApp.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "NewsTranslations",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    NewsItemId = table.Column<long>(type: "bigint", nullable: false),
+                    Lang = table.Column<string>(type: "character varying(8)", maxLength: 8, nullable: false),
+                    Title = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: false),
+                    Summary = table.Column<string>(type: "character varying(5000)", maxLength: 5000, nullable: true),
+                    Model = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_NewsTranslations", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_NewsTranslations_News_NewsItemId",
+                        column: x => x.NewsItemId,
+                        principalTable: "News",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "NewsCommentReports",
                 columns: table => new
                 {
@@ -369,6 +393,12 @@ namespace MyApp.Infrastructure.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_NewsTranslations_NewsItemId_Lang",
+                table: "NewsTranslations",
+                columns: new[] { "NewsItemId", "Lang" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Todos_UserId",
                 table: "Todos",
                 column: "UserId");
@@ -394,6 +424,9 @@ namespace MyApp.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "NewsCommentReports");
+
+            migrationBuilder.DropTable(
+                name: "NewsTranslations");
 
             migrationBuilder.DropTable(
                 name: "Todos");

@@ -64,4 +64,21 @@ public class NewsRulesTests
         Assert.Equal("Bitcoin & ETF news", TextCleaner.Clean("<p>Bitcoin &amp; ETF <script>alert(1)</script>news</p>", 100));
         Assert.Equal("abcd…", TextCleaner.Truncate("abcdefgh", 5));
     }
+
+    [Fact]
+    public void Keyword_filter_handles_russian_word_forms()
+    {
+        var pass = KeywordFilter.Create(["манул", "манулы", "Pallas's cat"]);
+        Assert.True(pass("В зоопарке родились манулы", null));
+        Assert.True(pass("Pallas's cat spotted in Mongolia", null));
+        Assert.False(pass("Манулярный эффект", null));   // целое слово, не подстрока
+    }
+
+    [Theory]
+    [InlineData("В зоопарке родились манулы", true)]
+    [InlineData("Pallas's cat kittens born", false)]
+    [InlineData("Bitcoin и ETF", false)]
+    [InlineData("", false)]
+    public void Cyrillic_detection(string text, bool expected) =>
+        Assert.Equal(expected, TextLanguage.IsMostlyCyrillic(text));
 }
