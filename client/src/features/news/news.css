@@ -1,0 +1,53 @@
+/* Вкладка «Новости». Цвета берутся из общих переменных приложения (styles.css). */
+
+.news-tab { display: grid; gap: 12px; }
+
+/* Поля и кнопки: вид как у вкладок «Задачи» и «Чаты» (нулевая специфичность, классы ниже их перебивают). */
+:where(.news-tab) button { padding: 8px 14px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+:where(.news-tab) button:hover:not(:disabled) { background: #f4f6fa; }
+:where(.news-tab) button:disabled { opacity: .5; cursor: default; }
+:where(.news-tab) textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: #fff; resize: vertical; }
+
+.news-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.news-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.news-chip { border-radius: 999px !important; }
+.news-chip.on { background: var(--accent) !important; border-color: var(--accent) !important; color: #fff; }
+
+.news-status { margin: 0; min-height: 1.5em; font-size: .85rem; }
+.news-list { display: grid; gap: 12px; transition: opacity .15s; }
+.news-list.is-loading { opacity: .5; pointer-events: none; }
+
+.news-card { display: flex; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.news-card-image { flex: none; width: 120px; height: 80px; object-fit: cover; border-radius: 6px; }
+.news-card-body { min-width: 0; flex: 1; }
+
+.news-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: .85rem; }
+.news-badge { padding: 1px 8px; border-radius: 999px; font-size: .78rem; font-weight: 600; }
+.news-badge.markets { background: #eef3ff; color: var(--accent); }
+.news-badge.crypto { background: #fff4e0; color: #9a5b00; }
+
+.news-title { margin: 6px 0; font-size: 1.05rem; line-height: 1.35; overflow-wrap: anywhere; }
+.news-title a { color: var(--text); text-decoration: none; }
+.news-title a:hover { color: var(--accent); text-decoration: underline; }
+.news-summary { margin: 0 0 8px; overflow-wrap: anywhere; }
+
+.news-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.news-more { justify-self: center; }
+.news-disclaimer { margin: 4px 0 0; text-align: center; font-size: .85rem; }
+
+/* кнопка-ссылка: «Показать полностью», «Удалить», «Пожаловаться» */
+.news-link { padding: 0 !important; border: 0 !important; background: none !important; color: var(--accent); font-size: .9rem; }
+.news-link:hover { text-decoration: underline; }
+
+.news-comments { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+.news-comment-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.news-comment-head { display: flex; align-items: baseline; gap: 8px; font-size: .9rem; }
+.news-comment-text { margin: 2px 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.news-comment-form { display: grid; gap: 6px; margin-top: 10px; }
+.news-comment-form-row { display: flex; align-items: center; justify-content: space-between; }
+
+@media (max-width: 600px) {
+  .news-card { flex-direction: column; }
+  .news-card-image { width: 100%; height: 160px; }
+  .news-actions button { flex: 1 1 auto; }
+}

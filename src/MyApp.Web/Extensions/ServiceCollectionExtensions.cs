@@ -76,6 +76,22 @@ public static class ServiceCollectionExtensions
                     });
             });
 
+            // комментарии и жалобы к новостям (в криптотеме много спама); лимит на IP
+            o.AddPolicy("news-comments", http =>
+            {
+                var limit = http.RequestServices.GetRequiredService<IConfiguration>()
+                    .GetValue("RateLimit:NewsCommentsPerMinute", 10);
+
+                return RateLimitPartition.GetFixedWindowLimiter(
+                    http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = limit,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueLimit = 0
+                    });
+            });
+
             o.OnRejected = (ctx, ct) =>
             {
                 var log = ctx.HttpContext.RequestServices

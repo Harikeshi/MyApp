@@ -8,6 +8,7 @@ using MyApp.Application.Accounts;
 using MyApp.Infrastructure.Captcha;
 using MyApp.Infrastructure.Email;
 using MyApp.Infrastructure.Identity;
+using MyApp.Infrastructure.News;
 using MyApp.Infrastructure.Persistence;
 
 namespace MyApp.Infrastructure;
@@ -25,6 +26,10 @@ public static class DependencyInjection
         }
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<AppDbContext>());
         services.AddScoped<ITodoRepository, TodoRepository>();
+        services.AddScoped<INewsRepository, NewsRepository>();
+
+        // ---------- новости (опрос лент, очистка, проверка /health/news) ----------
+        services.AddNewsFeed(env);
 
         // ---------- captcha ----------
         services.AddOptions<TurnstileOptions>().BindConfiguration(TurnstileOptions.SectionName);

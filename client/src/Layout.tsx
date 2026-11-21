@@ -4,16 +4,20 @@ import Chats from "./features/chats/Chats";
 import Settings from "./features/settings/Settings";
 import Stats from "./features/stats/Stats";
 import Todos from "./features/todos/Todos";
+import Notes from "./features/notes/Notes";
+import News from "./features/news/NewsTab";
 
-type Tab = "todos" | "stats" | "chats" | "settings";
+type Tab = "todos" | "stats" | "chats" | "notes" | "news" | "settings";
 
 const TABS: { id: Exclude<Tab, "settings">; label: string }[] = [
   { id: "todos", label: "Задачи" },
   { id: "stats", label: "Статистика" },
   { id: "chats", label: "Чаты" },
+  { id: "notes", label: "Заметки" },
+  { id: "news", label: "Новости" },
 ];
 
-const LABELS: Record<Tab, string> = { todos: "Задачи", stats: "Статистика", chats: "Чаты", settings: "Настройки" };
+const LABELS: Record<Tab, string> = { todos: "Задачи", stats: "Статистика", chats: "Чаты", notes: "Заметки", news: "Новости", settings: "Настройки" };
 
 /** Две первые буквы имени (если имени нет — почты): «Иван» -> «ИВ». */
 function initials(name?: string, email?: string): string {
@@ -128,6 +132,12 @@ export default function Layout() {
         </section>
         <section hidden={tab !== "chats"}>
           <Chats active={tab === "chats"} />
+        </section>
+        <section className="panel" hidden={tab !== "notes"}>
+          <Notes />
+        </section>
+        <section className="panel" hidden={tab !== "news"}>
+          <News active={tab === "news"} />
         </section>
         <section className="panel" hidden={tab !== "settings"}>
           <Settings />

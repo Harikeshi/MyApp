@@ -7,9 +7,15 @@ using MyApp.Domain.News;
 
 namespace MyApp.Infrastructure.Persistence;
 
-public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbContext<ApplicationUser>(options), IUnitOfWork
+public class AppDbContext(DbContextOptions<AppDbContext> options)
+    : IdentityDbContext<ApplicationUser>(options), IUnitOfWork
 {
     public DbSet<TodoItem> Todos => Set<TodoItem>();
+    public DbSet<NewsSource> NewsSources => Set<NewsSource>();
+    public DbSet<NewsItem> News => Set<NewsItem>();
+    public DbSet<NewsComment> NewsComments => Set<NewsComment>();
+    public DbSet<NewsCommentReport> NewsCommentReports => Set<NewsCommentReport>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);

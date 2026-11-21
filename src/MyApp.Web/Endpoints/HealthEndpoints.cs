@@ -15,6 +15,12 @@ public static class HealthEndpoints
             Predicate = r => r.Tags.Contains("ready")
         });
 
+        // новости: источники обновляются (отдельно от ready: сбой ленты не делает приложение «неготовым»)
+        app.MapHealthChecks("/health/news", new HealthCheckOptions
+        {
+            Predicate = r => r.Tags.Contains("news")
+        });
+
         return app;
     }
 }
