@@ -28,6 +28,12 @@ public class NewsService(
             ? await news.ListCommentsAsync(newsId, user.Id, ct)
             : null;
 
+    /// <returns>null: такой новости нет.</returns>
+    public async Task<NewsContentResponse?> GetContentAsync(long newsId, CancellationToken ct) =>
+        await news.ExistsAsync(newsId, ct)
+            ? new NewsContentResponse(await news.GetContentAsync(newsId, ct))
+            : null;
+
     public async Task<AddCommentResult> AddCommentAsync(long newsId, string? text, CancellationToken ct)
     {
         if (!CommentRules.TryNormalize(text, out var clean, out var error))

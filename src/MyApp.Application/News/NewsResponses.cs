@@ -12,9 +12,13 @@ public record NewsItemResponse(
     string Url,
     string? Summary,
     string? ImageUrl,
+    bool HasContent,                     // true: у новости есть полный текст (GET /news/{id}/content)
     DateTimeOffset PublishedAt,
     int CommentCount,
     TranslationResponse? Translation);   // null: перевод ещё не делали
+
+/// <param name="Content">Абзацы через пустую строку; null: полного текста нет.</param>
+public record NewsContentResponse(string? Content);
 
 /// <param name="NextCursor">null: это последняя страница.</param>
 public record NewsPageResponse(IReadOnlyList<NewsItemResponse> Items, string? NextCursor);

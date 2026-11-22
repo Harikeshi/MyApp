@@ -66,6 +66,8 @@ export default function AuthPage() {
   return (
     <div className="login-wrap">
       <form className="login" onSubmit={submit}>
+        {/* Файл лежит в client/public: Vite кладёт его в wwwroot/app/logo.png, страница отдаётся с /app/ */}
+        <img className="login-logo" src="/app/logo.png" alt="Cupboard" width={360} height={199} />
         <h1>{TITLES[mode]}</h1>
 
         {mode === "register" && (

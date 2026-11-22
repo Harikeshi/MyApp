@@ -11,7 +11,7 @@ public static class NewsEndpoints
         // Адреса вне /api: /api/** целиком уходит в AiChat через YARP.
         var news = app.MapGroup("/news").RequireAuthorization();
 
-        // GET /news?topic=crypto|markets&cursor=...&limit=20 -> { items, nextCursor }
+        // GET /news?topic=crypto|markets|manuls&cursor=...&limit=20 -> { items, nextCursor }
         // Без topic приходят все темы; nextCursor передаётся в следующий запрос (null: новостей больше нет).
         // topic приходит строкой и разбирается без учёта регистра: встроенный биндинг enum не принимает "markets".
         news.MapGet("/", async (string? topic, string? cursor, int? limit, NewsService service, CancellationToken ct) =>
@@ -22,13 +22,19 @@ public static class NewsEndpoints
                 // IsDefined отсекает числа ("7") и перечисления через запятую, которые Enum.TryParse пропускает.
                 if (!Enum.TryParse<NewsTopic>(topic, ignoreCase: true, out var t) || !Enum.IsDefined(t))
                     return Results.Problem(
-                        title: "Неизвестная тема", detail: "Допустимые темы: markets, crypto.",
+                        title: "Неизвестная тема", detail: "Допустимые темы: markets, crypto, manuls.",
                         statusCode: StatusCodes.Status400BadRequest);
                 parsed = t;
             }
 
             return Results.Ok(await service.ListAsync(parsed, cursor, limit, ct));
         });
+
+        // Полный текст статьи для «Читать полностью»: в список он не входит (до 20 тысяч символов на новость).
+        news.MapGet("/{id:long}/content", async (long id, NewsService service, CancellationToken ct) =>
+            await service.GetContentAsync(id, ct) is { } content
+                ? Results.Ok(content)
+                : Results.NotFound());
 
         news.MapGet("/{id:long}/comments", async (long id, NewsService service, CancellationToken ct) =>
             await service.ListCommentsAsync(id, ct) is { } comments

@@ -14,6 +14,7 @@ public class NewsTranslationTests
         public int CountToday;
         public NewsTranslation? Saved;
 
+        public Task<string?> GetContentAsync(long newsId, CancellationToken ct) => Task.FromResult<string?>(null);
         public Task<NewsItem?> FindAsync(long newsId, CancellationToken ct) => Task.FromResult(Item);
         public Task<TranslationResponse?> GetTranslationAsync(long newsId, string lang, CancellationToken ct) => Task.FromResult(Cached);
         public Task<int> CountTranslationsSinceAsync(DateTimeOffset since, CancellationToken ct) => Task.FromResult(CountToday);

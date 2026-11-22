@@ -1,5 +1,5 @@
 import { deleteJson, getJson, postJson } from "./http";
-import type { NewsComment, NewsPage, NewsTopic, Translation } from "../types/news";
+import type { NewsComment, NewsContent, NewsPage, NewsTopic, Translation } from "../types/news";
 
 export interface NewsListParams {
   topic?: NewsTopic;
@@ -15,6 +15,10 @@ export const fetchNews = ({ topic, cursor, limit }: NewsListParams, signal?: Abo
   const query = qs.toString();
   return getJson<NewsPage>(query ? `/news?${query}` : "/news", signal);
 };
+
+/** Полный текст статьи для «Читать полностью». */
+export const fetchNewsContent = (newsId: number, signal?: AbortSignal) =>
+  getJson<NewsContent>(`/news/${newsId}/content`, signal);
 
 export const fetchComments = (newsId: number, signal?: AbortSignal) =>
   getJson<NewsComment[]>(`/news/${newsId}/comments`, signal);

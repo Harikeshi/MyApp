@@ -15,9 +15,14 @@ export interface NewsItem {
   url: string;
   summary: string | null;
   imageUrl: string | null;
+  hasContent: boolean; // true: полный текст есть на сервере (GET /news/{id}/content)
   publishedAt: string;
   commentCount: number;
   translation: Translation | null; // null: перевод ещё не делали
+}
+
+export interface NewsContent {
+  content: string | null; // абзацы через пустую строку
 }
 
 export interface NewsPage {

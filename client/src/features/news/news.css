@@ -17,7 +17,7 @@
 .news-list { display: grid; gap: 12px; transition: opacity .15s; }
 .news-list.is-loading { opacity: .5; pointer-events: none; }
 
-.news-card { display: flex; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.news-card { scroll-margin-top: 12px; display: flex; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
 .news-card-image { flex: none; width: 120px; height: 80px; object-fit: cover; border-radius: 6px; }
 .news-card-body { min-width: 0; flex: 1; }
 
@@ -31,6 +31,10 @@
 .news-title a { color: var(--text); text-decoration: none; }
 .news-title a:hover { color: var(--accent); text-decoration: underline; }
 .news-summary { margin: 0 0 8px; overflow-wrap: anywhere; }
+
+.news-fulltext { margin: 0 0 8px; }
+.news-fulltext p { margin: 0 0 10px; overflow-wrap: anywhere; }
+.news-source-link { margin-left: auto; font-size: .9rem; }
 
 .news-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .news-more { justify-self: center; }

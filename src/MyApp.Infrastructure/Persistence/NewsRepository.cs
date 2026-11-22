@@ -27,7 +27,8 @@ public class NewsRepository(AppDbContext db) : INewsRepository
             .Take(limit + 1)
             .Select(n => new
             {
-                n.Id, SourceName = n.Source.Name, n.Topic, n.Title, n.Url, n.Summary, n.ImageUrl, n.PublishedAt
+                n.Id, SourceName = n.Source.Name, n.Topic, n.Title, n.Url, n.Summary, n.ImageUrl,
+                HasContent = n.Content != null, n.PublishedAt
             })
             .ToListAsync(ct);
 
@@ -46,7 +47,7 @@ public class NewsRepository(AppDbContext db) : INewsRepository
             .ToDictionaryAsync(t => t.NewsItemId, t => new TranslationResponse(t.Title, t.Summary), ct);
 
         var items = rows.Select(r => new NewsItemResponse(
-            r.Id, r.SourceName, r.Topic, r.Title, r.Url, r.Summary, r.ImageUrl, r.PublishedAt,
+            r.Id, r.SourceName, r.Topic, r.Title, r.Url, r.Summary, r.ImageUrl, r.HasContent, r.PublishedAt,
             counts.GetValueOrDefault(r.Id),
             translations.GetValueOrDefault(r.Id))).ToList();
 
@@ -59,6 +60,9 @@ public class NewsRepository(AppDbContext db) : INewsRepository
 
     public Task<bool> ExistsAsync(long newsId, CancellationToken ct) =>
         db.News.AnyAsync(n => n.Id == newsId, ct);
+
+    public Task<string?> GetContentAsync(long newsId, CancellationToken ct) =>
+        db.News.AsNoTracking().Where(n => n.Id == newsId).Select(n => n.Content).FirstOrDefaultAsync(ct);
 
     public Task<NewsItem?> FindAsync(long newsId, CancellationToken ct) =>
         db.News.AsNoTracking().FirstOrDefaultAsync(n => n.Id == newsId, ct);

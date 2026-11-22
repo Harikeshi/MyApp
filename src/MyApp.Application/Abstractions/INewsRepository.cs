@@ -14,6 +14,9 @@ public interface INewsRepository
 
     Task<bool> ExistsAsync(long newsId, CancellationToken ct);
 
+    /// <summary>Полный текст статьи (null: не получен). Существование новости проверяется отдельно: <see cref="ExistsAsync"/>.</summary>
+    Task<string?> GetContentAsync(long newsId, CancellationToken ct);
+
     Task<NewsItem?> FindAsync(long newsId, CancellationToken ct);
 
     Task<TranslationResponse?> GetTranslationAsync(long newsId, string lang, CancellationToken ct);

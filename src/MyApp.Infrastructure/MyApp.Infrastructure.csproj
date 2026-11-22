@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\MyApp.Application\MyApp.Application.csproj" />
@@ -15,6 +15,8 @@
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <!-- разбор RSS/Atom-лент новостей -->
     <PackageReference Include="System.ServiceModel.Syndication" Version="10.0.0" />
+    <!-- разбор HTML страниц новостей: фото (og:image) и текст статьи -->
+    <PackageReference Include="HtmlAgilityPack" Version="1.11.*" />
   </ItemGroup>
 
   <ItemGroup>

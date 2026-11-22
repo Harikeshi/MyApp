@@ -2,6 +2,7 @@ using System.Net;
 using System.Security.Cryptography;
 using System.ServiceModel.Syndication;
 using System.Text;
+using System.Web;
 using System.Xml;
 using System.Xml.Linq;
 using Microsoft.EntityFrameworkCore;
@@ -126,6 +127,11 @@ public sealed class NewsPollingService(
         {
             var link = (it.Links.FirstOrDefault(l => l.RelationshipType is null or "alternate") ?? it.Links.FirstOrDefault())?.Uri;
             if (link is null || !link.IsAbsoluteUri || link.Scheme is not ("http" or "https")) continue;
+
+            // Bing News даёт ссылку-редирект: настоящий адрес статьи лежит в параметре url.
+            var original = link;
+            link = UnwrapRedirect(link);
+            var unwrapped = link != original;
             if (link.AbsoluteUri.Length > 2000) continue;
 
             var title = TextCleaner.Clean(it.Title?.Text, 300);
@@ -135,7 +141,8 @@ public sealed class NewsPollingService(
             var fullText = TextCleaner.Clean(rawSummary, 5000);
             if (!passes(title, fullText)) continue;
 
-            var externalId = string.IsNullOrWhiteSpace(it.Id) ? link.AbsoluteUri : it.Id.Trim();
+            // У ссылки-редиректа в адресе есть одноразовые метки, поэтому идентификатором служит настоящий адрес статьи.
+            var externalId = unwrapped || string.IsNullOrWhiteSpace(it.Id) ? link.AbsoluteUri : it.Id.Trim();
             if (externalId.Length > 400)
                 externalId = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(externalId)));
 
@@ -162,7 +169,15 @@ public sealed class NewsPollingService(
                 .ToListAsync(ct))
             .ToHashSet();
 
-        var fresh = candidates.Where(c => !existing.Contains(c.ExternalId)).ToList();
+// Одна и та же статья приходит из нескольких лент (en, de, fr...): отсекаем по настоящему адресу.
+        var urls = candidates.Select(c => c.Url).ToList();
+        var existingUrls = (await db.News.AsNoTracking()
+                .Where(n => urls.Contains(n.Url))
+                .Select(n => n.Url)
+                .ToListAsync(ct))
+            .ToHashSet();
+
+        var fresh = candidates.Where(c => !existing.Contains(c.ExternalId) && !existingUrls.Contains(c.Url)).ToList();
         db.News.AddRange(fresh);
 
         src.ETag = resp.Headers.ETag?.ToString();   // запоминаем только после успешного разбора
@@ -179,6 +194,18 @@ public sealed class NewsPollingService(
         var utc = d.ToUniversalTime();
         if (utc > now.AddHours(1)) utc = now;
         return new DateTimeOffset(utc.Ticks - utc.Ticks % TimeSpan.TicksPerSecond, TimeSpan.Zero);
+    }
+
+    /// <summary>https://www.bing.com/news/apiclick.aspx?...&amp;url=НАСТОЯЩИЙ_АДРЕС -> НАСТОЯЩИЙ_АДРЕС. Остальные ссылки возвращаются как есть.</summary>
+    public static Uri UnwrapRedirect(Uri link)
+    {
+        if (link.Host.EndsWith("bing.com", StringComparison.OrdinalIgnoreCase)
+            && link.AbsolutePath.Contains("apiclick", StringComparison.OrdinalIgnoreCase))
+        {
+            var real = HttpUtility.ParseQueryString(link.Query)["url"];
+            if (Uri.TryCreate(real, UriKind.Absolute, out var u) && (u.Scheme is "http" or "https")) return u;
+        }
+        return link;
     }
 
     private static string? ExtractImage(SyndicationItem it)
@@ -207,6 +234,25 @@ public sealed class NewsPollingService(
                 if (url is not null) break;
             }
         }
+
+        // Bing News кладёт превью в <News:Image> (пространство имён не важно, берём по имени).
+        if (url is null)
+        {
+            foreach (var ext in it.ElementExtensions)
+            {
+                if (ext.OuterName != "Image") continue;
+                var value = ext.GetObject<XElement>().Value.Trim();
+                if (value.Length == 0) continue;
+                url = value;
+                break;
+            }
+        }
+
+        // Превью Bing иногда приходит как http://…bing.com/th?id=…; на https оно открывается так же.
+        if (url is not null && url.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+            && Uri.TryCreate(url, UriKind.Absolute, out var plain)
+            && plain.Host.EndsWith("bing.com", StringComparison.OrdinalIgnoreCase))
+            url = "https://" + url["http://".Length..];
 
         return Uri.TryCreate(url, UriKind.Absolute, out var u)
                && u.Scheme == Uri.UriSchemeHttps
