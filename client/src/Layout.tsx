@@ -5,17 +5,22 @@ import Settings from "./features/settings/Settings";
 import Stats from "./features/stats/Stats";
 import Todos from "./features/todos/Todos";
 import News from "./features/news/NewsTab";
+import Notes, { type NoteFocus } from "./features/notes/NotesTab";
+import SearchBox, { type NavTarget } from "./features/search/SearchBox";
+import { type TodoFocus } from "./features/todos/Todos";
+import type { ChatFocus } from "./features/chats/Chats";
 
-type Tab = "todos" | "stats" | "chats" | "news" | "settings";
+type Tab = "todos" | "notes" | "stats" | "chats" | "news" | "settings";
 
 const TABS: { id: Exclude<Tab, "settings">; label: string }[] = [
   { id: "todos", label: "Задачи" },
+  { id: "notes", label: "Notes" },
   { id: "stats", label: "Статистика" },
   { id: "chats", label: "Чаты" },
   { id: "news", label: "Новости" },
 ];
 
-const LABELS: Record<Tab, string> = { todos: "Задачи", stats: "Статистика", chats: "Чаты", news: "Новости", settings: "Настройки" };
+const LABELS: Record<Tab, string> = { todos: "Задачи", notes: "Notes", stats: "Статистика", chats: "Чаты", news: "Новости", settings: "Настройки" };
 
 /** Две первые буквы имени (если имени нет — почты): «Иван» -> «ИВ». */
 function initials(name?: string, email?: string): string {
@@ -54,6 +59,33 @@ export default function Layout() {
   const [tab, setTab] = useState<Tab>("todos");
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // переход из поиска: вкладка получает «фокус» (nonce нужен, чтобы тот же результат сработал снова)
+  const [todoFocus, setTodoFocus] = useState<TodoFocus | null>(null);
+  const [noteFocus, setNoteFocus] = useState<NoteFocus | null>(null);
+  const [chatFocus, setChatFocus] = useState<ChatFocus | null>(null);
+
+  const navigate = (target: NavTarget) => {
+    const nonce = Date.now();
+    switch (target.kind) {
+      case "todo":
+        setTodoFocus({ projectId: target.projectId, todoId: target.id, nonce });
+        go("todos");
+        break;
+      case "project":
+        setTodoFocus({ projectId: target.id, nonce });
+        go("todos");
+        break;
+      case "note":
+        setNoteFocus({ id: target.id, nonce });
+        go("notes");
+        break;
+      case "chat":
+        setChatFocus({ modelId: target.modelId, chatId: target.id, nonce });
+        go("chats");
+        break;
+    }
+  };
+
   const go = (next: Tab) => {
     setTab(next);
     setMenuOpen(false);
@@ -82,6 +114,7 @@ export default function Layout() {
             </button>
           ))}
         </nav>
+        <SearchBox onNavigate={navigate} />
         <div className="user">
           <UserChip name={user?.name} email={user?.email} active={tab === "settings"} onOpen={() => go("settings")} />
           <button type="button" onClick={() => void logout()}>
@@ -121,15 +154,18 @@ export default function Layout() {
       </header>
 
       {/* вкладке «Чаты» нужна ширина: список чатов слева, переписка справа */}
-      <main className={tab === "chats" ? "content wide chats" : "content"}>
-        <section className="panel" hidden={tab !== "todos"}>
-          <Todos />
+      <main className={tab === "chats" ? "content wide chats" : tab === "todos" || tab === "notes" ? "content wide" : "content"}>
+        <section className="panel flush" hidden={tab !== "todos"}>
+          <Todos focus={todoFocus} />
+        </section>
+        <section className="panel flush" hidden={tab !== "notes"}>
+          <Notes active={tab === "notes"} focus={noteFocus} />
         </section>
         <section className="panel" hidden={tab !== "stats"}>
           <Stats active={tab === "stats"} />
         </section>
         <section hidden={tab !== "chats"}>
-          <Chats active={tab === "chats"} />
+          <Chats active={tab === "chats"} focus={chatFocus} />
         </section>
         <section className="panel" hidden={tab !== "news"}>
           <News active={tab === "news"} />

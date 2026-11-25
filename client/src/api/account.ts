@@ -6,6 +6,8 @@ import { getToken } from "./session";
 export interface Profile {
   name: string;
   email: string;
+  /** Id пользователя (пусто, если профиль не загрузился). */
+  id: string;
 }
 
 /** Параметры из ссылки в письме: #reset=1&email=...&code=... */
@@ -59,11 +61,16 @@ async function fail(res: Response): Promise<never> {
   throw new ApiError(res.status, errorText(res.status, await readBody(res)));
 }
 
-/** Возвращает токен доступа. captchaToken: undefined — captcha на странице отключена. */
-export async function login(email: string, password: string, captchaToken?: string): Promise<string> {
+export interface Tokens {
+  accessToken: string;
+  refreshToken: string;
+}
+
+/** Возвращает токен доступа и refresh-токен (по нему сессия продлевается). captchaToken: undefined — captcha на странице отключена. */
+export async function login(email: string, password: string, captchaToken?: string): Promise<Tokens> {
   const res = await post("/login", { email, password }, captchaToken);
   if (!res.ok) return fail(res);
-  return ((await res.json()) as { accessToken: string }).accessToken;
+  return (await res.json()) as Tokens;
 }
 
 export async function register(

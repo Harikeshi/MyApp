@@ -1,0 +1,31 @@
+/* Строка поиска в шапке. На широком экране это поле, на телефоне иконка, раскрывающая поле под шапкой. */
+.sr { position: relative; flex: none; }
+.sr-toggle { display: none; width: 40px; height: 40px; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); font-size: 1.1rem; line-height: 1; }
+.sr-field { position: relative; }
+.sr-field input { width: 260px; min-height: 36px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 18px; background: #f6f7f9; color: var(--text); font: inherit; font-size: 14px; }
+.sr-field input:focus { background: #fff; }
+
+.sr-panel {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 60; width: 380px; max-height: min(70vh, 520px); overflow-y: auto;
+  padding: 6px; background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 8px 24px rgba(0, 0, 0, .18);
+}
+.sr-muted, .sr-error { margin: 0; padding: 10px; font-size: 14px; color: var(--muted); }
+.sr-error { color: var(--danger); }
+.sr-group + .sr-group { margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--line); }
+.sr-group-title { padding: 4px 10px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); }
+.sr-item { display: flex; flex-direction: column; gap: 1px; width: 100%; padding: 8px 10px; border: 0; border-radius: 6px; background: none; color: var(--text); text-align: left; cursor: pointer; }
+.sr-item:hover { background: #f3f4f6; }
+.sr-item.done .sr-item-title { color: var(--muted); text-decoration: line-through; }
+.sr-item-title { overflow-wrap: anywhere; }
+.sr-item-hint { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+@media (max-width: 768px) {
+  .sr-toggle { display: flex; align-items: center; justify-content: center; }
+  .sr-field { display: none; }
+  .sr-expanded .sr-field {
+    display: block; position: fixed; top: 56px; left: 0; right: 0; z-index: 55; padding: 8px; background: var(--surface);
+    border-bottom: 1px solid var(--line); box-shadow: 0 8px 20px rgba(0, 0, 0, .12);
+  }
+  .sr-field input { width: 100%; min-height: 40px; font-size: 16px; }
+  .sr-panel { position: static; width: auto; max-height: 60vh; margin-top: 8px; box-shadow: none; border: 0; padding: 0; }
+}

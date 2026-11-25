@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using MyApp.Application.Abstractions;
+using MyApp.Domain.Notes;
 using MyApp.Domain.Todos;
 using MyApp.Infrastructure.Identity;
 using MyApp.Domain.News;
@@ -11,6 +12,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     : IdentityDbContext<ApplicationUser>(options), IUnitOfWork
 {
     public DbSet<TodoItem> Todos => Set<TodoItem>();
+    public DbSet<Project> Projects => Set<Project>();
+    public DbSet<ProjectMember> ProjectMembers => Set<ProjectMember>();
+    public DbSet<Note> Notes => Set<Note>();
     public DbSet<NewsSource> NewsSources => Set<NewsSource>();
     public DbSet<NewsItem> News => Set<NewsItem>();
     public DbSet<NewsComment> NewsComments => Set<NewsComment>();

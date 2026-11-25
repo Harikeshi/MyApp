@@ -19,7 +19,8 @@ public enum PasswordResetRequestResult
     NotConfirmed
 }
 
-public record ProfileResponse(string Name, string Email);
+/// <param name="Id">Id пользователя: по нему клиент отличает себя от других (исполнитель задачи, ответственные проекта).</param>
+public record ProfileResponse(string Name, string Email, string Id = "");
 
 public record UpdateNameResult(bool Succeeded, ProfileResponse? Profile, string? Error)
 {

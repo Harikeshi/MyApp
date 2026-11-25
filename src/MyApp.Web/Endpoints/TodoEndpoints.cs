@@ -9,29 +9,30 @@ public static class TodoEndpoints
     {
         var todos = app.MapGroup("/todos").RequireAuthorization();
 
-        // GET /todos?page=1&pageSize=20 -> { items, page, pageSize, totalCount, totalPages }
-        todos.MapGet("/", (int? page, int? pageSize, TodoService service, CancellationToken ct) =>
-            service.ListAsync(page, pageSize, ct));
+        // GET /todos?projectId=3&page=1&pageSize=20 -> { items, page, pageSize, totalCount, totalPages }
+        // без projectId — все задачи, которые видит пользователь
+        todos.MapGet("/", (int? projectId, int? page, int? pageSize, TodoService service, CancellationToken ct) =>
+            service.ListAsync(projectId, page, pageSize, ct));
 
         todos.MapPost("/", async (CreateTodoRequest req, TodoService service, CancellationToken ct) =>
-        {
-            var created = await service.CreateAsync(req.Title, req.DueDate, req.Priority, ct);
-            return Results.Created($"/todos/{created.Id}", created);
-        });
+            (await service.CreateAsync(req.Title, req.DueAt, req.Priority, req.AssigneeId, req.ProjectId, ct))
+                .ToResult(created => Results.Created($"/todos/{created.Id}", created)));
 
+        // изменить текст, срок, приоритет, исполнителя (автор задачи или владелец проекта)
         todos.MapPut("/{id:int}", async (int id, UpdateTodoRequest req, TodoService service, CancellationToken ct) =>
-            await service.UpdateAsync(id, req.Title, req.IsDone, req.DueDate, req.Priority, ct)
-                ? Results.NoContent()
-                : Results.NotFound());
+            (await service.UpdateAsync(id, req.Title, req.DueAt, req.Priority, req.AssigneeId, ct))
+                .ToResult(todo => Results.Ok(todo)));
+
+        // отметка «выполнено» (любой, кто видит задачу)
+        todos.MapPatch("/{id:int}/done", async (int id, SetDoneRequest req, TodoService service, CancellationToken ct) =>
+            (await service.SetDoneAsync(id, req.IsDone, ct)).ToResult(todo => Results.Ok(todo)));
 
         todos.MapDelete("/{id:int}", async (int id, TodoService service, CancellationToken ct) =>
-            await service.DeleteAsync(id, ct)
-                ? Results.NoContent()
-                : Results.NotFound());
+            (await service.DeleteAsync(id, ct)).ToResult(_ => Results.NoContent()));
 
-        // today — локальная дата клиента (необязательно); по ней считается «просрочено»
-        todos.MapGet("/stats", (DateOnly? today, TodoService service, CancellationToken ct) =>
-            service.GetStatsAsync(today, ct));
+        // todayStart — начало текущего дня клиента (ISO 8601, необязательно); всё, что раньше, «просрочено»
+        todos.MapGet("/stats", (DateTimeOffset? todayStart, TodoService service, CancellationToken ct) =>
+            service.GetStatsAsync(todayStart, ct));
 
         return app;
     }

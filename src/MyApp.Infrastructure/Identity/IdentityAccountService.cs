@@ -60,7 +60,7 @@ public class IdentityAccountService(
 
         var email = user.Email ?? "";
         var name = string.IsNullOrWhiteSpace(user.DisplayName) ? email : user.DisplayName;
-        return new ProfileResponse(name, email);
+        return new ProfileResponse(name, email, user.Id);
     }
 
     public async Task RevokeSessionsAsync(CancellationToken ct)
@@ -86,7 +86,7 @@ public class IdentityAccountService(
         if (!result.Succeeded)
             return UpdateNameResult.Failure(string.Join(" ", result.Errors.Select(e => e.Description)));
 
-        return UpdateNameResult.Success(new ProfileResponse(name, user.Email ?? ""));
+        return UpdateNameResult.Success(new ProfileResponse(name, user.Email ?? "", user.Id));
     }
 
     public async Task<bool> VerifyPasswordAsync(string password, CancellationToken ct)

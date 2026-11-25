@@ -1,28 +1,67 @@
-/* Вкладка «Задачи»: вид прежней страницы (список, приоритеты, сроки, постраничная навигация). */
+/* Вкладка «Задачи»: проекты слева, форма новой задачи и список справа. */
+
+.pj { display: flex; align-items: flex-start; min-height: 420px; }
+
+/* ---------- проекты ---------- */
+.pj-side { flex: none; width: 260px; align-self: stretch; padding: 12px; border-right: 1px solid var(--line); background: #fafbfc; }
+.pj-new { width: 100%; margin-bottom: 8px; }
+.pj-list { list-style: none; margin: 0; padding: 0; }
+.pj-row { display: flex; align-items: stretch; border-radius: 6px; }
+.pj-row:hover { background: #f0f2f6; }
+.pj-row.active, .pj-row.active:hover { background: #e0ecff; }
+.pj-item { flex: 1; min-width: 0; display: block; padding: 8px 10px; border: 0 !important; border-radius: 6px; background: none !important; text-align: left; }
+.pj-name { display: block; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pj-meta { display: block; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pj-row .more-btn { align-self: center; height: 32px; }
+
+/* ---------- основной блок ---------- */
+.pj-main { flex: 1; min-width: 0; padding: 12px 20px 16px; }
+.pj-title { margin: 4px 0 8px; font-size: 1.2rem; overflow-wrap: anywhere; }
 
 .td-row { display: flex; align-items: center; gap: 8px; margin: 10px 0; flex-wrap: wrap; }
 .td-row input[type="text"] { flex: 1; min-width: 0; }
-
-/* Поле срока: нормальная высота и ширина на телефоне, кнопка «✕» справа от поля (сбросить срок). */
-.td-date { display: flex; align-items: center; gap: 4px; flex: 1 1 170px; min-width: 150px; }
-.td-date input[type="date"] { flex: 1; min-width: 0; min-height: 40px; box-sizing: border-box; font: inherit; color: var(--text); }
-.td-date-clear { flex: none; padding: 6px 10px; border: 0; background: none; color: var(--muted); }
-.td-row select { flex: 1 1 120px; min-width: 0; min-height: 40px; }
+.td-date { display: flex; align-items: center; gap: 4px; flex: 1 1 200px; min-width: 170px; }
+.td-date input[type="datetime-local"] { flex: 1; min-width: 0; min-height: 40px; font: inherit; color: var(--text); }
+.td-date-clear { flex: none; padding: 6px 10px !important; border: 0 !important; background: none !important; color: var(--muted); }
+.td-row select { flex: 1 1 130px; min-width: 0; min-height: 40px; }
 
 .td-error { margin: 8px 0; color: var(--danger); }
 .td-muted { margin: 8px 0; color: var(--muted); }
 
 /* ---------- список задач ---------- */
 .td-list { list-style: none; margin: 16px 0; padding: 0; }
-.td-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
-.td-title { flex: 1; overflow-wrap: anywhere; }
+.td-item { display: flex; align-items: center; gap: 10px; padding: 10px 4px; border-bottom: 1px solid var(--line); border-radius: 6px; }
+.td-item.flash { background: #fff6d6; transition: background .3s; }
+.td-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.td-title { overflow-wrap: anywhere; }
 .td-item.done .td-title { color: var(--muted); text-decoration: line-through; }
+.td-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: .85rem; }
 
 .td-prio { padding: 2px 8px; border-radius: 10px; background: #eef1f6; color: var(--muted); font-size: .8rem; }
 .td-item.high .td-prio { background: #fdecea; color: var(--danger); }
-.td-due { color: var(--muted); font-size: .85rem; white-space: nowrap; }
+.td-due { color: var(--muted); white-space: nowrap; }
 .td-due.overdue { color: var(--danger); font-weight: 600; }
+.td-who { color: var(--accent); }
+.td-proj { padding: 2px 8px; border-radius: 10px; background: #eef3ff; color: var(--accent); font-size: .8rem; }
 
 /* ---------- постраничная навигация ---------- */
 .td-pager { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 16px 0; }
 .td-pager span { color: var(--muted); }
+
+/* ---------- ответственные в окне проекта ---------- */
+.pj-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.pj-chip { display: flex; align-items: center; gap: 4px; padding: 2px 4px 2px 10px; border: 1px solid #cbd5e1; border-radius: 999px; background: #f1f5f9; color: var(--text); font-size: 13px; }
+.pj-chip button { padding: 0 6px; border: 0; background: none; color: var(--muted); cursor: pointer; }
+.pj-found { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 6px; }
+.pj-found button { width: 100%; padding: 8px 10px; border: 0; background: none; color: var(--text); text-align: left; cursor: pointer; }
+.pj-found button:hover { background: #f4f6fa; }
+.pj-hint { font-size: 13px; }
+
+/* ---------- узкий экран: проекты сверху, список прокручивается ---------- */
+@media (max-width: 720px) {
+  .pj { flex-direction: column; align-items: stretch; }
+  .pj-side { width: auto; align-self: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+  .pj-list { max-height: 190px; overflow-y: auto; }
+  .pj-main { padding: 12px; }
+  .td-row input[type="text"], .td-row select, .td-date input { font-size: 16px; }
+}

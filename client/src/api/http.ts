@@ -1,5 +1,5 @@
 // Единственное место, где клиент знает про токен и fetch для запросов от имени пользователя.
-import { getToken, notifyUnauthorized } from "./session";
+import { getToken, notifyUnauthorized, refreshSession } from "./session";
 
 export class ApiError extends Error {
   constructor(
@@ -35,26 +35,45 @@ async function serverMessage(res: Response): Promise<string | null> {
   return null;
 }
 
-async function request<T>(method: string, path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
-  const token = getToken();
-  if (!token) throw new ApiError(401, "Войдите, чтобы увидеть данные");
+/**
+ * fetch с токеном. Ответ 401 — токен доступа мог просто истечь: один раз обновляем его через refresh-токен
+ * и повторяем запрос. Если не вышло, сессия закончилась.
+ */
+async function authFetch(path: string, init: RequestInit): Promise<Response> {
+  const attempt = () => {
+    const token = getToken();
+    if (!token) throw new ApiError(401, "Войдите, чтобы увидеть данные");
+    const headers = { ...(init.headers as Record<string, string> | undefined), Authorization: `Bearer ${token}` };
+    return fetch(path, { ...init, headers });
+  };
 
-  const headers: Record<string, string> = { Authorization: `Bearer ${token}`, Accept: "application/json" };
+  let res = await attempt();
+  if (res.status === 401) {
+    const refreshed = await refreshSession();
+    if (refreshed === "offline") throw new ApiError(0, "Нет связи с сервером");
+    if (refreshed === "ok") res = await attempt();
+  }
+
+  if (res.status === 401) {
+    notifyUnauthorized(); // сессия закончилась: приложение вернёт пользователя на страницу входа
+    throw new ApiError(401, "Сессия истекла, войдите снова");
+  }
+  return res;
+}
+
+async function request<T>(method: string, path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
+  const headers: Record<string, string> = { Accept: "application/json" };
   // FormData уходит как есть: Content-Type с boundary браузер выставит сам
   const isForm = body instanceof FormData;
   if (body !== undefined && !isForm) headers["Content-Type"] = "application/json";
 
-  const res = await fetch(path, {
+  const res = await authFetch(path, {
     method,
     headers,
     body: body === undefined ? undefined : isForm ? (body as FormData) : JSON.stringify(body),
     signal,
   });
 
-  if (res.status === 401) {
-    notifyUnauthorized(); // сессия закончилась: приложение вернёт пользователя на страницу входа
-    throw new ApiError(401, "Сессия истекла, войдите снова");
-  }
   if (!res.ok) throw new ApiError(res.status, (await serverMessage(res)) ?? `Ошибка ${res.status}`);
 
   // PUT и DELETE отвечают 204 без тела
@@ -72,17 +91,10 @@ export const postForm = <T>(path: string, form: FormData, signal?: AbortSignal) 
 
 /**
  * Скачивает файл и отдаёт его браузеру как загрузку. Обычная ссылка <a href> не подходит:
- * токен хранится в sessionStorage, а не в cookie, и в такой запрос не попал бы заголовок Authorization.
+ * токен хранится в localStorage, а не в cookie, и в такой запрос не попал бы заголовок Authorization.
  */
 export async function downloadFile(path: string, fileName: string): Promise<void> {
-  const token = getToken();
-  if (!token) throw new ApiError(401, "Войдите, чтобы скачать файл");
-
-  const res = await fetch(path, { headers: { Authorization: `Bearer ${token}` } });
-  if (res.status === 401) {
-    notifyUnauthorized();
-    throw new ApiError(401, "Сессия истекла, войдите снова");
-  }
+  const res = await authFetch(path, {});
   if (!res.ok) throw new ApiError(res.status, (await serverMessage(res)) ?? `Ошибка ${res.status}`);
 
   const url = URL.createObjectURL(await res.blob());
@@ -96,5 +108,7 @@ export async function downloadFile(path: string, fileName: string): Promise<void
 }
 
 export const putJson = <T = void>(path: string, body: unknown) => request<T>("PUT", path, body);
+
+export const patchJson = <T = void>(path: string, body: unknown) => request<T>("PATCH", path, body);
 
 export const deleteJson = (path: string) => request<void>("DELETE", path);

@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import * as accountApi from "../../api/account";
 import type { Profile, ResetParams } from "../../api/account";
 import { ApiError } from "../../api/http";
-import { clearToken, getToken, onUnauthorized, setToken } from "../../api/session";
+import { clearToken, getToken, onUnauthorized, setTokens } from "../../api/session";
 import { initialResetParams } from "./resetLink";
 
 export interface Notice {
@@ -31,7 +31,7 @@ interface AuthState {
 const Ctx = createContext<AuthState>(null!);
 export const useAuth = () => useContext(Ctx);
 
-const NO_PROFILE: Profile = { name: "", email: "" };
+const NO_PROFILE: Profile = { name: "", email: "", id: "" };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [resetParams, setResetParams] = useState<ResetParams | null>(initialResetParams);
@@ -76,7 +76,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback<AuthState["login"]>(async (email, password, captchaToken) => {
-    setToken(await accountApi.login(email, password, captchaToken));
+    const tokens = await accountApi.login(email, password, captchaToken);
+    setTokens(tokens.accessToken, tokens.refreshToken);
 
     let profile = NO_PROFILE;
     try {

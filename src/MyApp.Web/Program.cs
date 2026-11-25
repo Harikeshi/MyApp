@@ -24,6 +24,9 @@ app.UseAppPipeline();    // порядок middleware (в том числе ст
 app.MapHealth();
 app.MapAccounts();
 app.MapTodos();
+app.MapProjects();
+app.MapNotes();
+app.MapSearch();
 app.MapNews();
 app.MapAiChatProxy();
 

@@ -30,7 +30,14 @@ const formatDate = (iso: string) => dateFormat.format(new Date(iso));
 
 const sameFile = (a: File, b: File) => a.name === b.name && a.size === b.size && a.lastModified === b.lastModified;
 
-export default function Chats({ active }: { active: boolean }) {
+/** Переход из поиска: открыть чат этой модели. nonce нужен, чтобы тот же переход сработал повторно. */
+export interface ChatFocus {
+  modelId: string;
+  chatId: string;
+  nonce: number;
+}
+
+export default function Chats({ active, focus }: { active: boolean; focus: ChatFocus | null }) {
   const c = useChats(active);
   const [draft, setDraft] = useState("");
   const [files, setFiles] = useState<File[]>([]);
@@ -67,6 +74,14 @@ export default function Chats({ active }: { active: boolean }) {
   const collapseOnMobile = () => {
     if (isMobile()) setSidebarOpen(false);
   };
+
+  // переход из поиска
+  const { openChatIn } = c;
+  useEffect(() => {
+    if (!focus) return;
+    void openChatIn(focus.modelId, focus.chatId);
+    if (isMobile()) setSidebarOpen(false);
+  }, [focus, openChatIn]);
 
   const onPickFiles = (e: ChangeEvent<HTMLInputElement>) => {
     const picked = Array.from(e.target.files ?? []);

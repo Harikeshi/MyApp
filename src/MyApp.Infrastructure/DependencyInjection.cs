@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication.BearerToken;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -26,6 +27,10 @@ public static class DependencyInjection
         }
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<AppDbContext>());
         services.AddScoped<ITodoRepository, TodoRepository>();
+        services.AddScoped<IProjectRepository, ProjectRepository>();
+        services.AddScoped<INoteRepository, NoteRepository>();
+        services.AddScoped<ISearchRepository, SearchRepository>();
+        services.AddScoped<IUserDirectory, UserDirectory>();
         services.AddScoped<INewsRepository, NewsRepository>();
 
         // ---------- новости (опрос лент, очистка, проверка /health/news) ----------
@@ -42,6 +47,15 @@ public static class DependencyInjection
             o.User.RequireUniqueEmail = true;
         })
         .AddEntityFrameworkStores<AppDbContext>();
+
+        // Длинная сессия. Клиент обновляет токен доступа через /refresh, пока жив refresh-токен,
+        // поэтому вход нужен раз в несколько недель, а не раз в час (по умолчанию Identity: 1 час и 14 дней).
+        // Сервис AiChat читает те же токены и срок берёт из самого токена, ему менять ничего не нужно.
+        services.Configure<BearerTokenOptions>(IdentityConstants.BearerScheme, o =>
+        {
+            o.BearerTokenExpiration = TimeSpan.FromMinutes(cfg.GetValue("Auth:AccessTokenMinutes", 120));
+            o.RefreshTokenExpiration = TimeSpan.FromDays(cfg.GetValue("Auth:RefreshTokenDays", 30));
+        });
 
         services.AddScoped<IAccountService, IdentityAccountService>();
 

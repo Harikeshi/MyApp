@@ -34,6 +34,7 @@ a { color: var(--accent); }
 .header { display: flex; align-items: center; gap: 24px; padding: 0 20px; height: 56px; background: var(--surface); border-bottom: 1px solid var(--line); }
 .brand { font-weight: 700; }
 .tabs { display: flex; gap: 4px; height: 100%; flex: 1; }
+.sr { margin-left: 8px; }
 .tab { display: flex; align-items: center; padding: 0 14px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: none; color: var(--muted); }
 .tab:hover { color: var(--text); }
 .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
@@ -55,18 +56,19 @@ a { color: var(--accent); }
 
 /* ---------- содержимое ---------- */
 .content { max-width: 720px; margin: 0 auto; padding: 24px 20px; }
-.content.wide { max-width: 1200px; }     /* вкладка «Чаты» шире остальных */
+.content.wide { max-width: 1200px; }     /* «Чаты», «Задачи» и Notes шире остальных */
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 20px; }
+.panel.flush { padding: 0; overflow: hidden; }   /* у «Задач» и Notes свои колонки с границами */
 .panel h2 { margin: 0 0 8px; font-size: 1.2rem; }
 
 /* Поля и кнопки внутри вкладок: вид прежней страницы. :where() даёт нулевую специфичность,
    поэтому стили конкретных компонентов (.ch-send, .ch-item и т. п.) их спокойно перебивают. */
-:where(.td, .ch) :where(input[type="text"], input[type="date"], select) {
+:where(.td, .ch, .nt) :where(input[type="text"], input[type="date"], select) {
   padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: #fff;
 }
-:where(.td, .ch) button { padding: 8px 14px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
-:where(.td, .ch) button:hover:not(:disabled) { background: #f4f6fa; }
-:where(.td, .ch) button:disabled { opacity: .5; cursor: default; }
+:where(.td, .ch, .nt) button { padding: 8px 14px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+:where(.td, .ch, .nt) button:hover:not(:disabled) { background: #f4f6fa; }
+:where(.td, .ch, .nt) button:disabled { opacity: .5; cursor: default; }
 
 /* ---------- узкий экран: вкладки, имя и «Выйти» прячутся в раскрывающееся меню ---------- */
 .menu-toggle, .menu, .menu-backdrop, .mobile-title, .mobile-user { display: none; }
@@ -74,6 +76,8 @@ a { color: var(--accent); }
 @media (max-width: 768px) {
   .header { position: sticky; top: 0; z-index: 30; gap: 8px; padding: 0 8px; }
   .brand, .tabs, .user { display: none; }
+  .sr { order: 2; margin-left: 0; }          /* между названием вкладки и аватаром */
+  .mobile-user { order: 3; }
 
   .menu-toggle {
     display: flex; align-items: center; justify-content: center; flex: none; width: 40px; height: 40px; padding: 0;

@@ -77,6 +77,20 @@ export function useChats(active: boolean) {
     [setChatId],
   );
 
+  /** Открывает чат другой (или той же) модели: переход из поиска. */
+  const openChatIn = useCallback(
+    async (model: string, chat: string) => {
+      if (sendingRef.current) return;
+      if (modelIdRef.current !== model) {
+        setModelId(model);
+        setChats([]);
+        void loadChats(model);
+      }
+      await openChat(chat);
+    },
+    [setModelId, loadChats, openChat],
+  );
+
   const selectModel = useCallback(
     (id: string) => {
       setModelId(id);
@@ -236,5 +250,5 @@ export function useChats(active: boolean) {
     [],
   );
 
-  return { models, modelId, chats, chatId, messages, sending, error, selectModel, startNewChat, openChat, removeChat, editMessage, removeMessage, send };
+  return { models, modelId, chats, chatId, messages, sending, error, selectModel, startNewChat, openChat, openChatIn, removeChat, editMessage, removeMessage, send };
 }
