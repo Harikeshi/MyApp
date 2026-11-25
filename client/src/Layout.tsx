@@ -14,7 +14,7 @@ type Tab = "todos" | "notes" | "stats" | "chats" | "news" | "settings";
 
 const TABS: { id: Exclude<Tab, "settings">; label: string }[] = [
   { id: "todos", label: "Задачи" },
-  { id: "notes", label: "Notes" },
+  { id: "notes", label: "Заметки" },
   { id: "stats", label: "Статистика" },
   { id: "chats", label: "Чаты" },
   { id: "news", label: "Новости" },
