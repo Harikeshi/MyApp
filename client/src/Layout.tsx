@@ -20,7 +20,7 @@ const TABS: { id: Exclude<Tab, "settings">; label: string }[] = [
   { id: "news", label: "Новости" },
 ];
 
-const LABELS: Record<Tab, string> = { todos: "Задачи", notes: "Notes", stats: "Статистика", chats: "Чаты", news: "Новости", settings: "Настройки" };
+const LABELS: Record<Tab, string> = { todos: "Задачи", notes: "Заметки", stats: "Статистика", chats: "Чаты", news: "Новости", settings: "Настройки" };
 
 /** Две первые буквы имени (если имени нет — почты): «Иван» -> «ИВ». */
 function initials(name?: string, email?: string): string {
